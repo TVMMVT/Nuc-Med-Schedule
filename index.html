@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NucMed Staff Scheduler</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e14;
+  --surface: #131920;
+  --surface2: #1a2332;
+  --surface3: #1f2d40;
+  --border: #263040;
+  --border2: #2d3a4a;
+  --accent: #00d4aa;
+  --accent-dim: rgba(0,212,170,0.12);
+  --accent-border: rgba(0,212,170,0.3);
+  --pet: #7c6ff7;
+  --general: #10b981;
+  --thera: #f59e0b;
+  --support: #ec4899;
+  --text: #dce8f5;
+  --text2: #7a90a8;
+  --text3: #4a5a6a;
+  --pto: #f97316;
+  --danger: #f85149;
+  --success: #3fb950;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+/* HEADER */
+header {
+  background: rgba(10,14,20,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  display: flex; align-items: center; gap: 20px;
+  height: 58px; position: sticky; top: 0; z-index: 200;
+}
+.logo {
+  font-family: 'Space Mono', monospace;
+  font-size: 14px; font-weight: 700;
+  color: var(--accent); letter-spacing: 0.06em;
+  display: flex; align-items: center; gap: 8px;
+}
+.logo-icon { font-size: 18px; }
+nav { display: flex; gap: 2px; flex: 1; }
+.nav-btn {
+  background: none; border: none;
+  color: var(--text2); font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 500;
+  padding: 7px 16px; border-radius: 8px;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  position: relative;
+}
+.nav-btn:hover { background: var(--surface2); color: var(--text); }
+.nav-btn.active { background: var(--surface2); color: var(--accent); }
+.nav-btn.active::after {
+  content: ''; position: absolute;
+  bottom: -1px; left: 16px; right: 16px;
+  height: 2px; background: var(--accent); border-radius: 2px;
+}
+
+.header-right { display: flex; align-items: center; gap: 10px; }
+.sync-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 12px;
+  font-size: 11px; color: var(--text2); white-space: nowrap;
+}
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+.sync-dot.live { background: var(--success); box-shadow: 0 0 6px var(--success); animation: glow 2s infinite; }
+.sync-dot.loading { background: var(--pto); animation: pulse 0.8s infinite; }
+.sync-dot.error { background: var(--danger); }
+@keyframes glow { 0%,100%{opacity:1} 50%{opacity:0.5} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.edit-mode-toggle {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap; color: var(--text2);
+}
+.edit-mode-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.edit-mode-toggle.on { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+.toggle-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); transition: background 0.2s; }
+.edit-mode-toggle.on .toggle-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+/* LOADING */
+.loading-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px;
+  z-index: 9999; transition: opacity 0.5s;
+}
+.loading-overlay.gone { opacity: 0; pointer-events: none; }
+.loading-logo { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; color: var(--accent); letter-spacing: 0.1em; }
+.loading-sub { font-size: 13px; color: var(--text2); }
+.loading-track { width: 280px; height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.loading-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #3b82f6); border-radius: 2px; transition: width 0.4s ease; }
+
+/* MAIN */
+main { padding: 28px; max-width: 1440px; margin: 0 auto; }
+.page { display: none; animation: fadeIn 0.2s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+/* PAGE HEADER */
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; gap: 16px; flex-wrap: wrap; }
+.page-title { font-family: 'Space Mono', monospace; font-size: 20px; font-weight: 700; color: var(--text); }
+.page-subtitle { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* INPUTS */
+.search-box, .filter-sel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 14px;
+  color: var(--text); font-family: 'DM Sans', sans-serif;
+  font-size: 13px; outline: none; transition: border-color 0.15s;
+}
+.search-box { width: 210px; }
+.search-box:focus, .filter-sel:focus { border-color: var(--accent); }
+.filter-sel { cursor: pointer; }
+
+/* BUTTONS */
+.btn {
+  border: none; border-radius: 8px; padding: 8px 18px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: rgba(248,81,73,0.12); color: var(--danger); border: 1px solid rgba(248,81,73,0.3); }
+.btn-danger:hover { background: rgba(248,81,73,0.2); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-icon { padding: 6px 10px; font-size: 14px; background: var(--surface2); border: 1px solid var(--border); color: var(--text2); border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+.btn-icon:hover { color: var(--accent); border-color: var(--accent); }
+
+/* DEPT PILLS */
+.dept-pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; letter-spacing: 0.03em; text-transform: uppercase; }
+.dp-PET { background: rgba(124,111,247,0.15); color: #9d93ff; border: 1px solid rgba(124,111,247,0.3); }
+.dp-General { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+.dp-Theranostics { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.dp-Support { background: rgba(236,72,153,0.15); color: #f472b6; border: 1px solid rgba(236,72,153,0.3); }
+
+/* CARDS */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.card-body { padding: 20px; }
+
+/* GRIDS */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+@media(max-width:1000px){.g4{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.g2,.g4{grid-template-columns:1fr}}
+
+/* STAT CARDS */
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px; position: relative; overflow: hidden;
+}
+.stat-card::after { content:''; position:absolute; top:0;left:0;right:0;height:2px; }
+.sc-pet::after{background:var(--pet)} .sc-gen::after{background:var(--general)} .sc-thera::after{background:var(--thera)} .sc-sup::after{background:var(--support)}
+.stat-label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; }
+.stat-val { font-family: 'Space Mono', monospace; font-size: 34px; font-weight: 700; margin: 8px 0 4px; }
+.stat-sub { font-size: 12px; color: var(--text2); }
+
+/* TABLE */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { background: var(--surface2); color: var(--text2); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.data-table td { padding: 10px 16px; border-bottom: 1px solid rgba(38,48,64,0.6); font-size: 13px; vertical-align: middle; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover td { background: rgba(255,255,255,0.015); }
+
+/* CHIPS */
+.tech-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.avatar { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.avatar-lg { width: 44px; height: 44px; border-radius: 10px; font-size: 13px; }
+.shift-badge { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--accent-border); white-space: nowrap; }
+.room-badge { font-size: 11px; font-weight: 600; color: var(--text2); background: var(--bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.info-badge { font-size: 11px; background: var(--surface2); border: 1px solid var(--border); color: var(--text2); padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.ib-green { background: rgba(16,185,129,0.1); color: #34d399; border-color: rgba(16,185,129,0.3); }
+.ib-amber { background: rgba(245,158,11,0.1); color: #fbbf24; border-color: rgba(245,158,11,0.3); }
+.ib-red { background: rgba(248,81,73,0.1); color: var(--danger); border-color: rgba(248,81,73,0.3); }
+
+/* SECTION DIVIDER */
+.sec-div { font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text3); display: flex; align-items: center; gap: 12px; margin: 24px 0 14px; }
+.sec-div::after { content:''; flex:1; height:1px; background: var(--border); }
+
+/* EDIT ROW */
+.edit-actions { display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+.data-table tbody tr:hover .edit-actions { opacity: 1; }
+.edit-mode-active .edit-actions { opacity: 1; }
+
+/* CHART */
+.chart-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.chart-lbl { font-size: 12px; color: var(--text2); width: 110px; text-align: right; }
+.chart-track { flex:1; background: var(--surface2); border-radius: 4px; height: 20px; overflow: hidden; }
+.chart-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; transition: width 0.6s ease; }
+.chart-fill span { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.8); }
+.chart-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text2); width: 28px; }
+
+/* PTO CALENDAR */
+.month-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(290px,1fr)); gap: 20px; }
+.month-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.month-card-hdr { background: var(--surface2); padding: 12px 16px; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--accent); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); }
+.cal-dh { text-align: center; font-size: 9px; font-weight: 700; color: var(--text3); text-transform: uppercase; padding: 7px 2px 5px; background: var(--surface2); }
+.cal-day { text-align: center; padding: 5px 2px; border: 1px solid rgba(38,48,64,0.4); min-height: 48px; position: relative; cursor: default; transition: background 0.1s; }
+.cal-day.has-pto { background: rgba(249,115,22,0.06); }
+.cal-day.edit-mode:hover { background: var(--surface3); cursor: pointer; }
+.day-n { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text2); display: block; }
+.cal-day.weekend .day-n { color: var(--text3); }
+.pto-tags { display: flex; flex-wrap: wrap; gap: 1px; justify-content: center; margin-top: 2px; }
+.pto-tag { font-size: 7px; font-weight: 700; background: rgba(249,115,22,0.2); color: var(--pto); border: 1px solid rgba(249,115,22,0.3); padding: 1px 3px; border-radius: 2px; cursor: pointer; transition: background 0.1s; }
+.pto-tag:hover { background: rgba(249,115,22,0.4); }
+.add-pto-hint { font-size: 8px; color: var(--text3); margin-top: 2px; display: none; }
+.cal-day.edit-mode:hover .add-pto-hint { display: block; }
+
+/* STAFF GRID */
+.staff-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(320px,1fr)); gap: 16px; }
+.staff-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; display: flex; gap: 14px; align-items: flex-start; transition: border-color 0.15s; position: relative; }
+.staff-card:hover { border-color: var(--accent-border); }
+.staff-card-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+.staff-card:hover .staff-card-actions { opacity: 1; }
+.edit-mode-active .staff-card-actions { opacity: 1; }
+.staff-name { font-size: 14px; font-weight: 600; }
+.staff-meta { font-size: 11px; color: var(--text2); margin: 4px 0 8px; line-height: 1.5; }
+.staff-quals { display: flex; gap: 6px; flex-wrap: wrap; }
+.staff-pto { margin-top: 8px; font-size: 11px; color: var(--text2); }
+.staff-pto-lbl { font-size: 10px; font-weight: 600; color: var(--pto); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* MODAL */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 500; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+.overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 18px; padding: 28px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.6); animation: modalIn 0.2s ease; }
+@keyframes modalIn { from{opacity:0;transform:scale(0.95)translateY(8px)} to{opacity:1;transform:scale(1)translateY(0)} }
+.modal-title { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.modal-close { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 20px; line-height: 1; transition: color 0.15s; }
+.modal-close:hover { color: var(--text); }
+.fg { margin-bottom: 16px; }
+.fg label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 6px; }
+.fi { width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; transition: border-color 0.15s; }
+.fi:focus { border-color: var(--accent); }
+.frow { display: flex; gap: 12px; }
+.frow .fg { flex: 1; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+
+/* TOAST */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 13px; font-weight: 500; z-index: 9999; transform: translateY(80px); opacity: 0; transition: all 0.3s; display: flex; align-items: center; gap: 8px; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: rgba(63,185,80,0.4); color: var(--success); }
+.toast.error { border-color: rgba(248,81,73,0.4); color: var(--danger); }
+
+/* UNSAVED BADGE */
+.unsaved-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pto); display: none; }
+.unsaved-dot.visible { display: inline-block; }
+
+mark { background: rgba(0,212,170,0.15); color: var(--accent); border-radius: 2px; padding: 0 1px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loader">
+  <div class="loading-logo">☢ NUCMED</div>
+  <div class="loading-track"><div class="loading-fill" id="load-bar" style="width:0"></div></div>
+  <div class="loading-sub" id="load-lbl">Initializing...</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<header>
+  <div class="logo"><span class="logo-icon">☢</span>NUC<span style="color:var(--text2)">MED</span></div>
+  <nav>
+    <button class="nav-btn active" onclick="nav('dashboard',this)">Dashboard</button>
+    <button class="nav-btn" onclick="nav('schedule',this)">Schedule</button>
+    <button class="nav-btn" onclick="nav('pto',this)">PTO Calendar</button>
+    <button class="nav-btn" onclick="nav('staff',this)">Staff Roster</button>
+  </nav>
+  <div class="header-right">
+    <div class="sync-pill"><div class="sync-dot" id="sync-dot"></div><span id="sync-lbl">Loading...</span></div>
+    <button class="edit-mode-toggle" id="edit-toggle" onclick="toggleEditMode()">
+      <div class="toggle-dot" id="toggle-dot"></div>
+      <span id="toggle-lbl">Edit Mode</span>
+    </button>
+    <div class="unsaved-dot" id="unsaved-dot" title="Unsaved changes"></div>
+  </div>
+</header>
+
+<main>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <div><div class="page-title">Overview</div><div class="page-subtitle" id="dash-sub">—</div></div>
+    <button class="btn btn-ghost" onclick="nav('schedule', document.querySelectorAll('.nav-btn')[1])">View Full Schedule →</button>
+  </div>
+  <div class="g4" style="margin-bottom:24px" id="stat-cards"></div>
+  <div class="g2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-header"><div class="card-title" id="today-title">Today's Assignments</div><span class="info-badge ib-green" id="today-badge">—</span></div>
+      <div style="overflow-x:auto"><table class="data-table" id="today-tbl"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Dept Distribution (All Loaded)</div></div>
+      <div class="card-body" id="dept-chart"></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Week at a Glance</div></div>
+      <div style="overflow-x:auto"><table class="data-table" id="week-tbl"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Upcoming PTO</div><span class="info-badge ib-amber">60 days</span></div>
+      <div class="card-body" id="pto-upcoming"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDULE -->
+<div class="page" id="page-schedule">
+  <div class="page-header">
+    <div><div class="page-title">Daily Schedule</div><div class="page-subtitle" id="sched-sub">—</div></div>
+    <div class="controls">
+      <select class="filter-sel" id="f-dept" onchange="renderSchedule()">
+        <option value="">All Departments</option>
+        <option>PET</option><option>General</option><option>Theranostics</option><option>Support</option>
+      </select>
+      <input class="search-box" placeholder="Search tech or room…" id="f-tech" oninput="renderSchedule()" />
+      <button class="btn btn-primary" id="add-shift-btn" style="display:none" onclick="openShiftModal()">+ Add Shift</button>
+    </div>
+  </div>
+  <div id="sched-body"></div>
+</div>
+
+<!-- PTO -->
+<div class="page" id="page-pto">
+  <div class="page-header">
+    <div><div class="page-title">PTO Calendar 2026</div><div class="page-subtitle">Click a day in Edit Mode to add/remove PTO</div></div>
+    <div class="controls">
+      <select class="filter-sel" id="f-pto-staff" onchange="renderPTO()"><option value="">All Staff</option></select>
+      <input class="search-box" placeholder="Filter by name…" id="f-pto-search" oninput="renderPTO()" />
+    </div>
+  </div>
+  <div class="month-grid" id="pto-grid"></div>
+</div>
+
+<!-- STAFF -->
+<div class="page" id="page-staff">
+  <div class="page-header">
+    <div><div class="page-title">Staff Roster</div><div class="page-subtitle" id="staff-sub">—</div></div>
+    <div class="controls">
+      <select class="filter-sel" id="f-qual" onchange="renderStaff()">
+        <option value="">All Qualifications</option>
+        <option>PET</option><option>General</option><option>Theranostics</option>
+      </select>
+      <input class="search-box" placeholder="Search staff…" id="f-staff" oninput="renderStaff()" />
+      <button class="btn btn-primary" id="add-staff-btn" style="display:none" onclick="openStaffModal()">+ Add Staff</button>
+    </div>
+  </div>
+  <div class="staff-grid" id="staff-grid"></div>
+</div>
+
+</main>
+
+<!-- SHIFT MODAL -->
+<div class="overlay" id="shift-modal">
+  <div class="modal">
+    <div class="modal-title"><span id="shift-modal-title">Add Shift</span><button class="modal-close" onclick="closeModal('shift-modal')">✕</button></div>
+    <input type="hidden" id="shift-edit-idx" value="-1" />
+    <div class="fg"><label>Date</label><input type="date" class="fi" id="s-date" /></div>
+    <div class="frow">
+      <div class="fg"><label>Department</label>
+        <select class="fi" id="s-dept">
+          <option>PET</option><option>General</option><option>Theranostics</option><option>Support</option>
+        </select>
+      </div>
+      <div class="fg"><label>Room</label>
+        <select class="fi" id="s-room">
+          <option>NM1</option><option>NM2</option><option>NM4</option><option>NM6</option>
+          <option>NM7</option><option>NM8</option><option>NM9</option>
+          <option>Pharmacy</option><option>Wet Work</option><option>Therapy Room</option><option>PET SUPPORT</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Shift Time</label>
+      <select class="fi" id="s-shift">
+        <option>6:00am-2:30pm</option><option>6:30am-3:00pm</option><option>6:45am-3:15pm</option>
+        <option>7:30am-4:00pm</option><option>8:00am-4:30pm</option>
+        <option>8:30am-5:00pm</option><option>9:30am-6:00pm</option>
+      </select>
+    </div>
+    <div class="fg"><label>Assigned Tech</label><select class="fi" id="s-tech"></select></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('shift-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveShift()">Save Shift</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAFF MODAL -->
+<div class="overlay" id="staff-modal">
+  <div class="modal">
+    <div class="modal-title"><span id="staff-modal-title">Add Staff Member</span><button class="modal-close" onclick="closeModal('staff-modal')">✕</button></div>
+    <input type="hidden" id="staff-edit-idx" value="-1" />
+    <div class="frow">
+      <div class="fg"><label>Full Name</label><input type="text" class="fi" id="st-name" placeholder="e.g. Jane Smith (JS)" /></div>
+      <div class="fg"><label>Initials</label><input type="text" class="fi" id="st-init" placeholder="JS" maxlength="4" /></div>
+    </div>
+    <div class="fg"><label>Available Days</label><input type="text" class="fi" id="st-days" placeholder="Mon–Fri" /></div>
+    <div class="fg"><label>Qualifications (comma-separated)</label><input type="text" class="fi" id="st-quals" placeholder="PET, General" /></div>
+    <div class="fg"><label>PTO Dates 2026</label><input type="text" class="fi" id="st-pto" placeholder="April 1-5, June 10-14" /></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('staff-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStaffMember()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- PTO MODAL -->
+<div class="overlay" id="pto-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title"><span id="pto-modal-title">Edit PTO</span><button class="modal-close" onclick="closeModal('pto-modal')">✕</button></div>
+    <div class="fg"><label>Staff Member</label><select class="fi" id="pto-staff-sel"></select></div>
+    <div class="fg"><label>Action</label>
+      <select class="fi" id="pto-action">
+        <option value="add">Add PTO this day</option>
+        <option value="remove">Remove PTO this day</option>
+      </select>
+    </div>
+    <input type="hidden" id="pto-month" /><input type="hidden" id="pto-day" />
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('pto-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePTOEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// GOOGLE SHEETS CONFIG
+// ============================================================
+const BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS56Vnpgr4W-5sXqTtZKYYt_SU-Fa-xFBbC305fGbhRacDrYVkvuRBbB0QQDO3Keqo2x5aMIZSfHlzZ/pub";
+const SHEETS = {
+  setup:     `${BASE}?gid=857202421&single=true&output=csv`,
+  schedule:  `${BASE}?gid=2091775262&single=true&output=csv`,
+  february:  `${BASE}?gid=1107581550&single=true&output=csv`,
+  march:     `${BASE}?gid=2137625194&single=true&output=csv`,
+  april:     `${BASE}?gid=1910202117&single=true&output=csv`,
+  may:       `${BASE}?gid=1156609192&single=true&output=csv`,
+  june:      `${BASE}?gid=1447547753&single=true&output=csv`,
+  july:      `${BASE}?gid=93681615&single=true&output=csv`,
+  august:    `${BASE}?gid=161740404&single=true&output=csv`,
+  september: `${BASE}?gid=196519839&single=true&output=csv`,
+  october:   `${BASE}?gid=441178117&single=true&output=csv`,
+  november:  `${BASE}?gid=2049554349&single=true&output=csv`,
+  december:  `${BASE}?gid=1453961859&single=true&output=csv`,
+};
+
+const MONTH_INFO = {
+  February:{num:2,days:28}, March:{num:3,days:31}, April:{num:4,days:30},
+  May:{num:5,days:31}, June:{num:6,days:30}, July:{num:7,days:31},
+  August:{num:8,days:31}, September:{num:9,days:30}, October:{num:10,days:31},
+  November:{num:11,days:30}, December:{num:12,days:31}
+};
+
+// ============================================================
+// STATE — loaded from localStorage first, then Google Sheets
+// ============================================================
+let DB = {
+  staff: [],
+  schedule: [],
+  pto: {},     // { MonthName: { INITIALS: [days] } }
+  lastSync: null,
+  localEdits: false,
+};
+let editMode = false;
+
+const LS_KEY = 'nucmed_db_v2';
+
+function saveLocal() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(DB));
+    document.getElementById('unsaved-dot').classList.remove('visible');
+    showToast('✓ Saved locally', 'success');
+  } catch(e) { showToast('⚠ Could not save', 'error'); }
+}
+
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) { DB = JSON.parse(raw); return true; }
+  } catch(e) {}
+  return false;
+}
+
+function markUnsaved() {
+  document.getElementById('unsaved-dot').classList.add('visible');
+}
+
+// ============================================================
+// CSV PARSER
+// ============================================================
+function parseCSV(text) {
+  return text.trim().split('\n').map(line => {
+    const cells = []; let cur = '', inQ = false;
+    for (const c of line) {
+      if (c==='"') inQ=!inQ;
+      else if (c===','&&!inQ){cells.push(cur.trim());cur='';}
+      else cur+=c;
+    }
+    cells.push(cur.trim()); return cells;
+  });
+}
+
+async function fetchCSV(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return parseCSV(await r.text());
+}
+
+// ============================================================
+// LOADING UI
+// ============================================================
+function setLoad(pct, lbl) {
+  document.getElementById('load-bar').style.width = pct + '%';
+  document.getElementById('load-lbl').textContent = lbl;
+}
+function setSyncUI(state, lbl) {
+  document.getElementById('sync-dot').className = 'sync-dot ' + state;
+  document.getElementById('sync-lbl').textContent = lbl;
+}
+
+// ============================================================
+// PARSE STAFF
+// ============================================================
+async function fetchStaff() {
+  const rows = await fetchCSV(SHEETS.setup);
+  const hIdx = rows.findIndex(r => r[0] && r[0].trim()==='Name');
+  if (hIdx===-1) return [];
+  const staff = [];
+  for (let i=hIdx+1;i<rows.length;i++){
+    const r=rows[i]; if(!r[0]||!r[0].trim()) continue;
+    const name=r[0].trim();
+    const m=name.match(/\(([^)]+)\)/);
+    staff.push({
+      name, initials: m?m[1]:name.substring(0,2).toUpperCase(),
+      days: r[1]?r[1].trim():'',
+      quals: r[2]?r[2].split(',').map(q=>q.trim()).filter(Boolean):[],
+      pto: r[3]?r[3].trim():'',
+    });
+  }
+  return staff;
+}
+
+// ============================================================
+// PARSE SCHEDULE
+// ============================================================
+async function fetchSchedule() {
+  const rows = await fetchCSV(SHEETS.schedule);
+  const hIdx = rows.findIndex(r=>r.some(c=>c&&c.toLowerCase().includes('date')));
+  if (hIdx===-1) return [];
+  const H = rows[hIdx].map(h=>h.trim().toLowerCase());
+  const dI=H.findIndex(h=>h==='date'), deptI=H.findIndex(h=>h==='dept'),
+        rI=H.findIndex(h=>h==='room'), sI=H.findIndex(h=>h==='shift'),
+        tI=H.findIndex(h=>h.includes('assigned')||h.includes('tech'));
+  const sched=[];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r=rows[i]; if(!r[dI]||!r[dI].trim()) continue;
+    const d=new Date(r[dI].trim()); if(isNaN(d)) continue;
+    sched.push({
+      date: d.toISOString().split('T')[0],
+      dept: r[deptI]?r[deptI].trim():'',
+      room: r[rI]?r[rI].trim():'',
+      shift: r[sI]?r[sI].trim():'',
+      tech: r[tI]?r[tI].trim():'',
+    });
+  }
+  return sched.sort((a,b)=>a.date.localeCompare(b.date)||a.dept.localeCompare(b.dept));
+}
+
+// ============================================================
+// PARSE PTO (month sheets)
+// ============================================================
+async function fetchMonthPTO(monthName, key) {
+  try {
+    const rows = await fetchCSV(SHEETS[key]);
+    const info = MONTH_INFO[monthName];
+    const pto = {};
+    for(let i=0;i<rows.length;i++){
+      const r=rows[i];
+      for(let col=1;col<=6;col++){
+        const cell=r[col]?r[col].trim():'';
+        if(!cell) continue;
+        if(/^\d+$/.test(cell)||/^(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)$/i.test(cell)||/^(JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER)$/i.test(cell)) continue;
+        if(cell.length>5) continue;
+        // find day number
+        let dayNum=null;
+        for(let u=i-1;u>=0;u--){
+          const up=rows[u];
+          for(let c=1;c<=7;c++){
+            const v=up[c]?up[c].trim():'';
+            if(/^\d+$/.test(v)){
+              const sun=up[1]?parseInt(up[1].trim()):NaN;
+              if(!isNaN(sun)&&sun>0){dayNum=sun+(col-1);break;}
+              for(let c2=1;c2<=7;c2++){
+                const v2=up[c2]?parseInt(up[c2].trim()):NaN;
+                if(!isNaN(v2)&&v2>0&&v2<=info.days){dayNum=v2+(col-c2);break;}
+              }
+              break;
+            }
+          }
+          if(dayNum!==null) break;
+        }
+        if(dayNum&&dayNum>=1&&dayNum<=info.days){
+          if(!pto[cell]) pto[cell]=[];
+          if(!pto[cell].includes(dayNum)) pto[cell].push(dayNum);
+        }
+      }
+    }
+    return pto;
+  } catch(e){ return {}; }
+}
+
+// ============================================================
+// SYNC FROM GOOGLE SHEETS
+// ============================================================
+async function syncFromSheets() {
+  setSyncUI('loading','Syncing...');
+  try {
+    setLoad(5,'Loading staff roster...');
+    const staff = await fetchStaff();
+    if(staff.length) DB.staff = staff;
+
+    setLoad(25,'Loading schedule...');
+    const sched = await fetchSchedule();
+    if(sched.length) DB.schedule = sched;
+
+    setLoad(40,'Loading PTO calendars...');
+    const months = Object.keys(MONTH_INFO);
+    const keys = ['february','march','april','may','june','july','august','september','october','november','december'];
+    await Promise.all(months.map((m,i)=>fetchMonthPTO(m,keys[i]).then(p=>{DB.pto[m]=p;})));
+
+    setLoad(95,'Saving locally...');
+    DB.lastSync = new Date().toISOString();
+    DB.localEdits = false;
+    saveLocal();
+    setSyncUI('live','Synced · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+    setLoad(100,'Ready!');
+  } catch(e) {
+    console.error(e);
+    setSyncUI('error','Sync failed');
+    document.getElementById('load-lbl').textContent = '⚠ Could not reach Google Sheets — using local data';
+    if(!DB.staff.length) { document.getElementById('load-lbl').textContent = '⚠ No data. Check internet connection.'; return false; }
+  }
+  return true;
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+const TC=['#7c6ff7','#10b981','#f59e0b','#ec4899','#3b82f6','#8b5cf6','#ef4444','#06b6d4','#84cc16','#f97316','#14b8a6','#a855f7'];
+function tColor(name){let h=0;for(const c of name)h=(h*31+c.charCodeAt(0))&0xffffffff;return TC[Math.abs(h)%TC.length];}
+function tInits(name){const s=DB.staff.find(st=>st.name===name);if(s)return s.initials;const m=name.match(/\(([^)]+)\)/);return m?m[1]:name.substring(0,2).toUpperCase();}
+function chip(name){return`<span class="tech-chip"><span class="avatar" style="background:${tColor(name)}">${tInits(name)}</span>${name}</span>`;}
+function dpill(dept){const s=dept.replace(/\s/g,'');return`<span class="dept-pill dp-${s}">${dept}</span>`;}
+function fmtDate(iso){return new Date(iso+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});}
+function hl(t,q){if(!q)return t;return t.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'),'<mark>$1</mark>');}
+function weekDates(){return[...new Set(DB.schedule.map(s=>s.date))].sort().slice(0,10);}
+function closestDate(dates){const t=new Date().toISOString().split('T')[0];const u=dates.filter(d=>d>=t);return u.length?u[0]:dates[dates.length-1];}
+function domStart(year,month){return new Date(year,month-1,1).getDay();}
+
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+(type||'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ============================================================
+// EDIT MODE
+// ============================================================
+function toggleEditMode(){
+  editMode=!editMode;
+  const tog=document.getElementById('edit-toggle');
+  const dot=document.getElementById('toggle-dot');
+  const lbl=document.getElementById('toggle-lbl');
+  tog.classList.toggle('on',editMode);
+  lbl.textContent=editMode?'Editing ON':'Edit Mode';
+  document.getElementById('add-shift-btn').style.display=editMode?'':'none';
+  document.getElementById('add-staff-btn').style.display=editMode?'':'none';
+  document.querySelectorAll('.page.active')[0].classList.toggle('edit-mode-active',editMode);
+  renderSchedule(); renderStaff(); renderPTO();
+  if(editMode) showToast('✏ Edit mode on — changes save to this browser','success');
+}
+
+// ============================================================
+// NAV
+// ============================================================
+function nav(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const pg=document.getElementById('page-'+id);
+  pg.classList.add('active');
+  if(editMode) pg.classList.add('edit-mode-active');
+  if(btn) btn.classList.add('active');
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard(){
+  const dates=weekDates(); if(!dates.length) return;
+  const today=closestDate(dates);
+  const todayE=DB.schedule.filter(s=>s.date===today);
+  document.getElementById('dash-sub').textContent=`Week of ${fmtDate(dates[0])} — ${fmtDate(dates[Math.min(4,dates.length-1)])}`;
+
+  // stats
+  const dc={PET:0,General:0,Theranostics:0,Support:0};
+  todayE.forEach(s=>{ if(dc[s.dept]!==undefined) dc[s.dept]++; });
+  const sc=[{k:'PET',c:'sc-pet',col:'#9d93ff',l:'PET Techs'},{k:'General',c:'sc-gen',col:'#34d399',l:'General'},{k:'Theranostics',c:'sc-thera',col:'#fbbf24',l:'Theranostics'},{k:'Support',c:'sc-sup',col:'#f472b6',l:'Support'}];
+  document.getElementById('stat-cards').innerHTML=sc.map(x=>`<div class="stat-card ${x.c}"><div class="stat-label">${x.l}</div><div class="stat-val" style="color:${x.col}">${dc[x.k]}</div><div class="stat-sub">Shifts today</div></div>`).join('');
+
+  // today table
+  document.getElementById('today-title').textContent=`Assignments — ${fmtDate(today)}`;
+  document.getElementById('today-badge').textContent=`${todayE.length} shifts`;
+  document.getElementById('today-tbl').innerHTML=`<thead><tr><th>Dept</th><th>Room</th><th>Shift</th><th>Tech</th></tr></thead><tbody>${todayE.map(s=>`<tr><td>${dpill(s.dept)}</td><td><span class="room-badge">${s.room}</span></td><td><span class="shift-badge">${s.shift}</span></td><td>${chip(s.tech)}</td></tr>`).join('')}</tbody>`;
+
+  // chart
+  const ac={};
+  DB.schedule.forEach(s=>{ ac[s.dept]=(ac[s.dept]||0)+1; });
+  const mv=Math.max(...Object.values(ac),1);
+  const dc2={PET:'#7c6ff7',General:'#10b981',Theranostics:'#f59e0b',Support:'#ec4899'};
+  document.getElementById('dept-chart').innerHTML=Object.entries(ac).map(([d,n])=>`<div class="chart-row"><div class="chart-lbl">${d}</div><div class="chart-track"><div class="chart-fill" style="width:${(n/mv*100).toFixed(0)}%;background:${dc2[d]||'#888'}"><span>${n}</span></div></div><div class="chart-num">${n}</div></div>`).join('');
+
+  // week summary
+  const wd=dates.slice(0,5);
+  const slots=[...new Set(DB.schedule.filter(s=>wd.includes(s.date)).map(s=>s.room+'|'+s.shift))].sort();
+  const dh=wd.map(d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'}));
+  document.getElementById('week-tbl').innerHTML=`<thead><tr><th>Room/Shift</th>${dh.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${slots.map(sl=>{const[rm,sh]=sl.split('|');return`<tr><td><span class="room-badge">${rm}</span> <span class="shift-badge" style="font-size:10px">${sh}</span></td>${wd.map(d=>{const e=DB.schedule.find(s=>s.date===d&&s.room===rm&&s.shift===sh);return`<td>${e?chip(e.tech):'<span style="color:var(--text3)">—</span>'}</td>`;}).join('')}</tr>`;}).join('')}</tbody>`;
+
+  // upcoming pto
+  const t=new Date().toISOString().split('T')[0];
+  const cut=new Date(); cut.setDate(cut.getDate()+60);
+  const up=[];
+  Object.entries(DB.pto).forEach(([month,entries])=>{
+    const mi=MONTH_INFO[month]; if(!mi) return;
+    Object.entries(entries).forEach(([init,days])=>{
+      days.forEach(d=>{
+        const dt=new Date(2026,mi.num-1,d);
+        const iso=dt.toISOString().split('T')[0];
+        if(iso>=t&&dt<=cut){
+          const s=DB.staff.find(st=>st.initials===init||st.name.toUpperCase().includes(init.toUpperCase()));
+          up.push({name:s?s.name:init,iso,lbl:`${month} ${d}`});
+        }
+      });
+    });
+  });
+  up.sort((a,b)=>a.iso.localeCompare(b.iso));
+  const grp={};
+  up.forEach(u=>{if(!grp[u.name])grp[u.name]=[];grp[u.name].push(u.lbl);});
+  document.getElementById('pto-upcoming').innerHTML=Object.entries(grp).slice(0,10).map(([n,ls])=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(38,48,64,0.6)">${chip(n)}<span style="font-size:12px;color:var(--text2)">${ls[0]}${ls.length>1?' – '+ls[ls.length-1]:''}</span></div>`).join('')||'<div style="color:var(--text2);font-size:13px">No PTO in the next 60 days</div>';
+}
+
+// ============================================================
+// SCHEDULE
+// ============================================================
+function renderSchedule(){
+  const dF=document.getElementById('f-dept').value;
+  const sF=document.getElementById('f-tech').value.toLowerCase().trim();
+  const dates=weekDates();
+  const dl={};dates.forEach(d=>{dl[d]=fmtDate(d);});
+  const em=editMode;
+  let html='';
+  dates.forEach(date=>{
+    let entries=DB.schedule.filter(s=>s.date===date);
+    if(dF) entries=entries.filter(s=>s.dept===dF);
+    if(sF) entries=entries.filter(s=>s.tech.toLowerCase().includes(sF)||s.room.toLowerCase().includes(sF));
+    if(!entries.length) return;
+    html+=`<div class="sec-div">${dl[date]}<span style="color:var(--text3)">${entries.length} shifts</span></div>`;
+    html+=`<div class="card" style="margin-bottom:0"><div style="overflow-x:auto"><table class="data-table">
+      <thead><tr><th>Dept</th><th>Room</th><th>Shift</th><th>Assigned Tech</th>${em?'<th></th>':''}</tr></thead><tbody>`;
+    entries.forEach(s=>{
+      const idx=DB.schedule.indexOf(s);
+      html+=`<tr><td>${dpill(s.dept)}</td><td><span class="room-badge">${s.room}</span></td><td><span class="shift-badge">${s.shift}</span></td><td>${chip(s.tech)}</td>${em?`<td><div class="edit-actions"><button class="btn-icon" onclick="editShift(${idx})" title="Edit">✏</button><button class="btn-icon btn-danger" style="background:rgba(248,81,73,0.1);color:var(--danger);border-color:rgba(248,81,73,0.3)" onclick="deleteShift(${idx})" title="Delete">✕</button></div></td>`:''}</tr>`;
+    });
+    html+=`</tbody></table></div></div>`;
+  });
+  if(!html) html=`<div style="text-align:center;padding:48px;color:var(--text2)">No entries match your filters</div>`;
+  document.getElementById('sched-body').innerHTML=html;
+  document.getElementById('sched-sub').textContent=`${DB.schedule.length} total shifts · ${dates.length} days loaded`;
+}
+
+function openShiftModal(idx=-1){
+  document.getElementById('shift-edit-idx').value=idx;
+  // populate tech dropdown
+  const sel=document.getElementById('s-tech');
+  sel.innerHTML=DB.staff.map(s=>`<option>${s.name}</option>`).join('');
+  if(idx>=0){
+    const s=DB.schedule[idx];
+    document.getElementById('shift-modal-title').textContent='Edit Shift';
+    document.getElementById('s-date').value=s.date;
+    document.getElementById('s-dept').value=s.dept;
+    document.getElementById('s-room').value=s.room;
+    document.getElementById('s-shift').value=s.shift;
+    document.getElementById('s-tech').value=s.tech;
+  } else {
+    document.getElementById('shift-modal-title').textContent='Add Shift';
+    document.getElementById('s-date').value=weekDates()[0]||'';
+  }
+  document.getElementById('shift-modal').classList.add('open');
+}
+function editShift(idx){ openShiftModal(idx); }
+function deleteShift(idx){
+  if(!confirm('Delete this shift?')) return;
+  DB.schedule.splice(idx,1);
+  markUnsaved(); saveLocal(); renderSchedule(); renderDashboard();
+  showToast('Shift deleted','success');
+}
+function saveShift(){
+  const idx=parseInt(document.getElementById('shift-edit-idx').value);
+  const entry={
+    date:document.getElementById('s-date').value,
+    dept:document.getElementById('s-dept').value,
+    room:document.getElementById('s-room').value,
+    shift:document.getElementById('s-shift').value,
+    tech:document.getElementById('s-tech').value,
+  };
+  if(idx>=0) DB.schedule[idx]=entry;
+  else DB.schedule.push(entry);
+  DB.schedule.sort((a,b)=>a.date.localeCompare(b.date)||a.dept.localeCompare(b.dept));
+  closeModal('shift-modal');
+  saveLocal(); renderSchedule(); renderDashboard();
+  showToast(idx>=0?'Shift updated ✓':'Shift added ✓','success');
+}
+
+// ============================================================
+// PTO
+// ============================================================
+function renderPTO(){
+  const staffF=document.getElementById('f-pto-staff').value;
+  const search=document.getElementById('f-pto-search').value.toLowerCase().trim();
+  const em=editMode;
+  let html='';
+  Object.keys(MONTH_INFO).forEach(month=>{
+    const info=MONTH_INFO[month];
+    const start=domStart(2026,info.num);
+    const pto=DB.pto[month]||{};
+    let filtered={};
+    Object.entries(pto).forEach(([init,days])=>{
+      const s=DB.staff.find(st=>st.initials===init||st.name.toUpperCase().includes(init.toUpperCase()));
+      const name=s?s.name:init;
+      if(staffF&&name!==staffF) return;
+      if(search&&!name.toLowerCase().includes(search)&&!init.toLowerCase().includes(search)) return;
+      filtered[init]=days;
+    });
+    html+=`<div class="month-card"><div class="month-card-hdr">${month.toUpperCase()} 2026<span style="font-size:10px;color:var(--text2)">${Object.keys(filtered).length} staff off</span></div><div class="cal-grid">`;
+    html+=['SUN','MON','TUE','WED','THU','FRI','SAT'].map(d=>`<div class="cal-dh">${d}</div>`).join('');
+    for(let i=0;i<start;i++) html+=`<div class="cal-day empty"></div>`;
+    for(let d=1;d<=info.days;d++){
+      const dow=(start+d-1)%7;
+      const isWE=dow===0||dow===6;
+      const hits=Object.entries(filtered).filter(([,v])=>v.includes(d));
+      const editCls=em&&!isWE?'edit-mode':'';
+      const clickAttr=em&&!isWE?`onclick="openPTOModal('${month}',${d})"` : '';
+      html+=`<div class="cal-day ${isWE?'weekend':''} ${hits.length?'has-pto':''} ${editCls}" ${clickAttr}>
+        <span class="day-n">${d}</span>
+        ${hits.length?`<div class="pto-tags">${hits.map(([i])=>`<span class="pto-tag" ${em?`onclick="event.stopPropagation();quickRemovePTO('${month}',${d},'${i}')" title="Remove ${i}"`:''}>${i}</span>`).join('')}</div>`:''}
+        ${em&&!isWE?`<div class="add-pto-hint">+ PTO</div>`:''}
+      </div>`;
+    }
+    const tot=start+info.days;
+    for(let i=tot%7;i>0&&i<7;i++) html+=`<div class="cal-day empty"></div>`;
+    html+=`</div></div>`;
+  });
+  document.getElementById('pto-grid').innerHTML=html;
+}
+
+function openPTOModal(month, day){
+  document.getElementById('pto-month').value=month;
+  document.getElementById('pto-day').value=day;
+  document.getElementById('pto-modal-title').textContent=`PTO — ${month} ${day}`;
+  const sel=document.getElementById('pto-staff-sel');
+  sel.innerHTML=DB.staff.map(s=>`<option value="${s.initials}">${s.name}</option>`).join('');
+  document.getElementById('pto-modal').classList.add('open');
+}
+
+function quickRemovePTO(month, day, init){
+  if(!editMode) return;
+  if(!DB.pto[month]) return;
+  if(!DB.pto[month][init]) return;
+  DB.pto[month][init]=DB.pto[month][init].filter(d=>d!==day);
+  if(!DB.pto[month][init].length) delete DB.pto[month][init];
+  saveLocal(); renderPTO(); renderDashboard();
+  showToast(`Removed PTO for ${init} on ${month} ${day}`,'success');
+}
+
+function savePTOEdit(){
+  const month=document.getElementById('pto-month').value;
+  const day=parseInt(document.getElementById('pto-day').value);
+  const init=document.getElementById('pto-staff-sel').value;
+  const action=document.getElementById('pto-action').value;
+  if(!DB.pto[month]) DB.pto[month]={};
+  if(!DB.pto[month][init]) DB.pto[month][init]=[];
+  if(action==='add'){
+    if(!DB.pto[month][init].includes(day)) DB.pto[month][init].push(day);
+    DB.pto[month][init].sort((a,b)=>a-b);
+  } else {
+    DB.pto[month][init]=DB.pto[month][init].filter(d=>d!==day);
+    if(!DB.pto[month][init].length) delete DB.pto[month][init];
+  }
+  closeModal('pto-modal');
+  saveLocal(); renderPTO(); renderDashboard();
+  showToast(`PTO ${action==='add'?'added':'removed'} ✓`,'success');
+}
+
+// ============================================================
+// STAFF
+// ============================================================
+function renderStaff(){
+  const qF=document.getElementById('f-qual').value;
+  const sF=document.getElementById('f-staff').value.toLowerCase().trim();
+  const em=editMode;
+  let list=DB.staff;
+  if(qF) list=list.filter(s=>s.quals.includes(qF));
+  if(sF) list=list.filter(s=>s.name.toLowerCase().includes(sF));
+  document.getElementById('staff-sub').textContent=`${list.length} staff member${list.length!==1?'s':''}`;
+  if(!list.length){document.getElementById('staff-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text2)">No staff match your filters</div>`;return;}
+  document.getElementById('staff-grid').innerHTML=list.map(s=>{
+    const idx=DB.staff.indexOf(s);
+    const nameHL=sF?hl(s.name,document.getElementById('f-staff').value):s.name;
+    return`<div class="staff-card">
+      ${em?`<div class="staff-card-actions"><button class="btn-icon" onclick="editStaff(${idx})" title="Edit">✏</button><button class="btn-icon btn-danger" style="background:rgba(248,81,73,0.1);color:var(--danger);border-color:rgba(248,81,73,0.3)" onclick="deleteStaff(${idx})" title="Delete">✕</button></div>`:''}
+      <div class="avatar avatar-lg" style="background:${tColor(s.name)}">${s.initials}</div>
+      <div style="flex:1;min-width:0">
+        <div class="staff-name">${nameHL}</div>
+        <div class="staff-meta">📅 ${s.days}</div>
+        <div class="staff-quals">${s.quals.map(q=>`<span class="dept-pill dp-${q}">${q}</span>`).join('')}</div>
+        ${s.pto?`<div class="staff-pto"><div class="staff-pto-lbl">PTO 2026</div><div>${s.pto}</div></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openStaffModal(idx=-1){
+  document.getElementById('staff-edit-idx').value=idx;
+  if(idx>=0){
+    const s=DB.staff[idx];
+    document.getElementById('staff-modal-title').textContent='Edit Staff Member';
+    document.getElementById('st-name').value=s.name;
+    document.getElementById('st-init').value=s.initials;
+    document.getElementById('st-days').value=s.days;
+    document.getElementById('st-quals').value=s.quals.join(', ');
+    document.getElementById('st-pto').value=s.pto;
+  } else {
+    document.getElementById('staff-modal-title').textContent='Add Staff Member';
+    ['st-name','st-init','st-days','st-quals','st-pto'].forEach(id=>document.getElementById(id).value='');
+  }
+  document.getElementById('staff-modal').classList.add('open');
+}
+function editStaff(idx){ openStaffModal(idx); }
+function deleteStaff(idx){
+  if(!confirm(`Remove ${DB.staff[idx].name}?`)) return;
+  DB.staff.splice(idx,1);
+  saveLocal(); renderStaff(); showToast('Staff removed','success');
+}
+function saveStaffMember(){
+  const idx=parseInt(document.getElementById('staff-edit-idx').value);
+  const entry={
+    name:document.getElementById('st-name').value.trim(),
+    initials:document.getElementById('st-init').value.trim().toUpperCase(),
+    days:document.getElementById('st-days').value.trim(),
+    quals:document.getElementById('st-quals').value.split(',').map(q=>q.trim()).filter(Boolean),
+    pto:document.getElementById('st-pto').value.trim(),
+  };
+  if(!entry.name){showToast('Name is required','error');return;}
+  if(idx>=0) DB.staff[idx]=entry; else DB.staff.push(entry);
+  closeModal('staff-modal');
+  saveLocal(); renderStaff(); renderDashboard();
+  // refresh tech dropdowns
+  populateFilters();
+  showToast(idx>=0?'Staff updated ✓':'Staff added ✓','success');
+}
+
+// ============================================================
+// MODALS
+// ============================================================
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+// ============================================================
+// POPULATE FILTERS
+// ============================================================
+function populateFilters(){
+  const sel=document.getElementById('f-pto-staff');
+  sel.innerHTML='<option value="">All Staff</option>'+DB.staff.map(s=>`<option>${s.name}</option>`).join('');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function init(){
+  setLoad(5,'Checking local data...');
+  const hasLocal=loadLocal();
+  if(hasLocal&&DB.staff.length){
+    setLoad(30,'Loading from local storage...');
+    setSyncUI('','Local data');
+    renderAll();
+    setLoad(100,'Ready!');
+    setTimeout(()=>document.getElementById('loader').classList.add('gone'),500);
+    // sync in background
+    setSyncUI('loading','Background sync...');
+    syncFromSheets().then(()=>renderAll());
+  } else {
+    setLoad(10,'Fetching from Google Sheets...');
+    await syncFromSheets();
+    renderAll();
+    setLoad(100,'Ready!');
+    setTimeout(()=>document.getElementById('loader').classList.add('gone'),500);
+  }
+}
+
+function renderAll(){
+  populateFilters();
+  renderDashboard();
+  renderSchedule();
+  renderPTO();
+  renderStaff();
+}
+
+init();
+// Auto-sync every 10 min
+setInterval(()=>syncFromSheets().then(renderAll), 10*60*1000);
+</script>
+</body>
+</html>
