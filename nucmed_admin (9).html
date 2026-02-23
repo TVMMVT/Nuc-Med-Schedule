@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NucMed Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg:#0a0e14;--surface:#131920;--surface2:#1a2332;--surface3:#1f2d40;--border:#263040;--border2:#2d3a4a;
+  --accent:#00d4aa;--adim:rgba(0,212,170,0.12);--aborder:rgba(0,212,170,0.3);
+  --pet:#7c6ff7;--general:#10b981;--thera:#f59e0b;--support:#ec4899;
+  --text:#dce8f5;--text2:#7a90a8;--text3:#4a5a6a;--pto:#f97316;--danger:#f85149;--success:#3fb950;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+.login-box{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:40px;width:100%;max-width:400px;text-align:center;}
+.login-logo{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--accent);margin-bottom:8px;}
+.login-sub{font-size:13px;color:var(--text2);margin-bottom:32px;}
+.login-badge{display:inline-block;font-size:11px;font-weight:600;background:rgba(248,81,73,0.1);color:var(--danger);border:1px solid rgba(248,81,73,0.3);padding:3px 10px;border-radius:20px;margin-bottom:24px;}
+.fi{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.15s;margin-bottom:12px;}
+.fi:focus{border-color:var(--accent);}
+.btn-login{width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s;margin-top:4px;}
+.btn-login:hover{opacity:0.85;}
+.login-err{font-size:12px;color:var(--danger);margin-top:12px;display:none;}
+.app-wrap{display:none;}
+header{background:rgba(10,14,20,0.97);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;gap:20px;height:58px;position:sticky;top:0;z-index:200;}
+.logo{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--accent);letter-spacing:0.06em;}
+.admin-badge{font-size:10px;font-weight:700;background:rgba(248,81,73,0.15);color:var(--danger);border:1px solid rgba(248,81,73,0.3);padding:2px 8px;border-radius:20px;letter-spacing:0.06em;}
+nav{display:flex;gap:2px;flex:1;}
+.nav-btn{background:none;border:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:7px 16px;border-radius:8px;cursor:pointer;transition:all 0.15s;}
+.nav-btn:hover{background:var(--surface2);color:var(--text);}
+.nav-btn.active{background:var(--surface2);color:var(--accent);}
+.nav-btn.gen-nav{color:var(--accent);border:1px solid var(--aborder);}
+.nav-btn.gen-nav.active{background:var(--adim);}
+.user-pill{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text2);}
+.btn-signout{background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;transition:color 0.15s;}
+.btn-signout:hover{color:var(--danger);}
+main{padding:28px;max-width:1440px;margin:0 auto;}
+.page{display:none;animation:fi 0.2s ease;}.page.active{display:block;}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;gap:16px;flex-wrap:wrap;}
+.page-title{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;}
+.page-sub{font-size:13px;color:var(--text2);margin-top:4px;}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.fsel,.si{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.15s;}
+.si{width:210px;}.si:focus,.fsel:focus{border-color:var(--accent);}
+.btn{border:none;border-radius:8px;padding:8px 18px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.btn-p{background:var(--accent);color:#000;}.btn-p:hover{opacity:0.85;}
+.btn-g{background:var(--surface2);color:var(--text);border:1px solid var(--border);}.btn-g:hover{border-color:var(--accent);color:var(--accent);}
+.btn-d{background:rgba(248,81,73,0.12);color:var(--danger);border:1px solid rgba(248,81,73,0.3);}.btn-d:hover{background:rgba(248,81,73,0.22);}
+.btn-warn{background:rgba(245,158,11,0.12);color:var(--thera);border:1px solid rgba(245,158,11,0.3);}
+.btn-icon{padding:6px 10px;font-size:14px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:6px;cursor:pointer;transition:all 0.15s;}
+.btn-icon:hover{color:var(--accent);border-color:var(--accent);}
+.dept-pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;text-transform:uppercase;}
+.dp-PET{background:rgba(124,111,247,0.15);color:#9d93ff;border:1px solid rgba(124,111,247,0.3);}
+.dp-General{background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3);}
+.dp-Theranostics{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);}
+.dp-Support{background:rgba(236,72,153,0.15);color:#f472b6;border:1px solid rgba(236,72,153,0.3);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.card-title{font-size:13px;font-weight:600;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+@media(max-width:900px){.g4{grid-template-columns:1fr 1fr}}@media(max-width:600px){.g2,.g4{grid-template-columns:1fr}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.sc-pet::after{background:var(--pet)}.sc-gen::after{background:var(--general)}.sc-thera::after{background:var(--thera)}.sc-sup::after{background:var(--support)}
+.stat-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;}
+.stat-val{font-family:'Space Mono',monospace;font-size:34px;font-weight:700;margin:8px 0 4px;}
+.stat-sub{font-size:12px;color:var(--text2);}
+.dt{width:100%;border-collapse:collapse;}
+.dt th{background:var(--surface2);color:var(--text2);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;padding:10px 16px;text-align:left;border-bottom:1px solid var(--border);}
+.dt td{padding:10px 16px;border-bottom:1px solid rgba(38,48,64,0.6);font-size:13px;vertical-align:middle;}
+.dt tr:last-child td{border-bottom:none;}
+.dt tbody tr:hover td{background:rgba(255,255,255,0.015);}
+.ea{display:flex;gap:6px;opacity:0;transition:opacity 0.15s;}
+.dt tbody tr:hover .ea{opacity:1;}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500;white-space:nowrap;}
+.av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;flex-shrink:0;}
+.avl{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
+.sb{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);background:rgba(0,212,170,0.08);padding:2px 8px;border-radius:4px;border:1px solid rgba(0,212,170,0.2);white-space:nowrap;}
+.rb{font-size:11px;font-weight:600;color:var(--text2);background:var(--bg);border:1px solid var(--border);padding:2px 8px;border-radius:4px;white-space:nowrap;}
+.ib{font-size:11px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:3px 9px;border-radius:20px;}
+.ib-g{background:rgba(16,185,129,0.1);color:#34d399;border-color:rgba(16,185,129,0.3);}
+.ib-a{background:rgba(245,158,11,0.1);color:#fbbf24;border-color:rgba(245,158,11,0.3);}
+.ib-r{background:rgba(248,81,73,0.1);color:var(--danger);border-color:rgba(248,81,73,0.3);}
+.sd{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);display:flex;align-items:center;gap:12px;margin:24px 0 14px;}
+.sd::after{content:'';flex:1;height:1px;background:var(--border);}
+.mg{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px;}
+.mc{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.mch{background:var(--surface2);padding:12px 16px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.12em;color:var(--accent);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);}
+.cdh{text-align:center;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;padding:7px 2px 5px;background:var(--surface2);}
+.cd{text-align:center;padding:5px 2px;border:1px solid rgba(38,48,64,0.4);min-height:48px;cursor:pointer;transition:background 0.1s;}
+.cd:not(.we):hover{background:var(--surface3);}
+.cd.hp{background:rgba(249,115,22,0.06);}
+.dn{font-family:'Space Mono',monospace;font-size:10px;color:var(--text2);display:block;}
+.cd.we .dn{color:var(--text3);}
+.pt{display:flex;flex-wrap:wrap;gap:1px;justify-content:center;margin-top:2px;}
+.ptag{font-size:7px;font-weight:700;background:rgba(249,115,22,0.2);color:var(--pto);border:1px solid rgba(249,115,22,0.3);padding:1px 3px;border-radius:2px;cursor:pointer;}
+.ptag:hover{background:rgba(249,115,22,0.4);}
+.add-hint{font-size:8px;color:var(--text3);margin-top:2px;display:none;}
+.cd:not(.we):hover .add-hint{display:block;}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px;}
+.sc2{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;gap:14px;align-items:flex-start;transition:border-color 0.15s;position:relative;}
+.sc2:hover{border-color:var(--aborder);}
+.sca{position:absolute;top:12px;right:12px;display:flex;gap:6px;opacity:0;transition:opacity 0.15s;}
+.sc2:hover .sca{opacity:1;}
+.sn{font-size:14px;font-weight:600;}
+.sm{font-size:11px;color:var(--text2);margin:4px 0 8px;line-height:1.5;}
+.sq{display:flex;gap:6px;flex-wrap:wrap;}
+.sp{margin-top:8px;font-size:11px;color:var(--text2);}
+.spl{font-size:10px;font-weight:600;color:var(--pto);text-transform:uppercase;letter-spacing:0.08em;}
+
+/* GENERATOR STYLES */
+.gen-setup{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:24px;}
+.gen-setup-title{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--accent);margin-bottom:20px;}
+.week-picker{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;}
+.draft-banner{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+.draft-banner-text{font-size:13px;color:var(--thera);font-weight:600;}
+.draft-banner-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+.alert-row{background:rgba(248,81,73,0.06);border:1px solid rgba(248,81,73,0.2);border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:var(--danger);}
+.gen-day-section{margin-bottom:20px;}
+.gen-day-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.gen-day-title{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;}
+.sched-grid{width:100%;border-collapse:collapse;min-width:860px;}
+.sched-grid th{background:var(--surface2);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.07em;border-bottom:2px solid var(--border);white-space:nowrap;}
+.sched-grid th.day-th{color:var(--accent);font-family:'Space Mono',monospace;font-size:10px;text-align:center;min-width:155px;}
+.sched-grid td{padding:7px 12px;border-bottom:1px solid rgba(38,48,64,0.45);vertical-align:middle;}
+.sched-grid tbody tr:last-child td{border-bottom:none;}
+.sched-grid tbody tr:hover td{background:rgba(255,255,255,0.012);}
+.sched-grid .section-row td{background:var(--surface2);padding:5px 14px;}
+.sched-grid .section-row td span{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);}
+.room-cell{display:flex;flex-direction:column;gap:2px;}
+.room-cell-name{font-size:12px;font-weight:600;color:var(--text);}
+.room-cell-shift{font-family:'Space Mono',monospace;font-size:9px;color:var(--accent);}
+.grid-sel{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;outline:none;cursor:pointer;}
+.grid-sel:focus{border-color:var(--accent);}
+.grid-sel.unfilled{border-color:var(--danger);color:var(--danger);}
+.manual-tag{font-size:10px;font-weight:600;background:rgba(236,72,153,0.1);color:#f472b6;border:1px solid rgba(236,72,153,0.3);padding:2px 7px;border-radius:20px;}
+.sched-grid .pto-row td{background:rgba(248,81,73,0.04);}
+.sched-grid .section-row.pto-section td{background:rgba(248,81,73,0.08);}
+.sched-grid .section-row.pto-section td span{color:var(--danger);}
+.grid-sel.double-booked{border-color:#f97316 !important;background:rgba(249,115,22,0.12) !important;color:#fb923c !important;animation:pulse-orange 1s ease 3;}
+@keyframes pulse-orange{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,0.4)}50%{box-shadow:0 0 0 4px rgba(249,115,22,0.2)}}
+.dupe-warning{position:fixed;bottom:70px;right:24px;background:#1c1a14;border:1px solid #f97316;border-radius:10px;padding:10px 16px;font-size:12px;color:#fb923c;z-index:9999;transform:translateY(80px);opacity:0;transition:all 0.3s;max-width:320px;}
+.dupe-warning.show{transform:translateY(0);opacity:1;}
+.gen-grid-wrap{overflow-x:auto;}
+
+/* CALENDAR PICKER */
+.cal-wrap{position:relative;display:inline-block;}
+.cal-trigger{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;color:var(--text);font-family:"DM Sans",sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:10px;min-width:260px;transition:border-color 0.15s;user-select:none;}
+.cal-trigger:hover,.cal-trigger.open{border-color:var(--accent);}
+.cal-trigger-text{flex:1;}
+.cal-trigger-arrow{color:var(--text3);font-size:11px;transition:transform 0.15s;}
+.cal-trigger.open .cal-trigger-arrow{transform:rotate(180deg);}
+.cal-dropdown{position:absolute;top:calc(100% + 8px);left:0;background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:20px;z-index:400;width:322px;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:none;}
+.cal-dropdown.open{display:block;animation:mi 0.15s ease;}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.cal-nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:18px;transition:all 0.15s;display:flex;align-items:center;justify-content:center;line-height:1;}
+.cal-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
+.cal-month-label{font-family:"Space Mono",monospace;font-size:13px;font-weight:700;color:var(--text);}
+.cal-full-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-dh{text-align:center;font-size:10px;font-weight:700;padding:0 0 10px;text-transform:uppercase;color:var(--text3);letter-spacing:0.06em;}
+.cal-dh.hl{color:var(--accent);}
+.cal-day{text-align:center;border-radius:8px;font-size:13px;color:var(--text3);height:38px;display:flex;align-items:center;justify-content:center;position:relative;transition:all 0.1s;}
+.cal-day.monday{color:var(--text);cursor:pointer;font-weight:700;background:rgba(0,212,170,0.08);outline:1px solid rgba(0,212,170,0.18);}
+.cal-day.monday:hover{background:rgba(0,212,170,0.22);outline-color:var(--accent);color:var(--accent);transform:scale(1.06);}
+.cal-day.monday.selected{background:var(--accent) !important;color:#000 !important;outline-color:var(--accent);}
+.cal-day.is-today:not(.monday){outline:1px solid var(--text3);color:var(--text);}
+.cal-day.is-today.monday{outline:2px solid var(--accent);}
+.cal-day.has-sched::after{content:"";position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--pet);}
+.cal-day.monday.selected::after{background:#000;}
+.cal-footer{display:flex;align-items:center;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:10px;color:var(--text2);}
+.cal-footer-item{display:flex;align-items:center;gap:5px;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.6);animation:mi 0.2s ease;}
+@keyframes mi{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+.modal-title{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.modal-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;line-height:1;}
+.modal-close:hover{color:var(--text);}
+.fg{margin-bottom:16px;}
+.fg label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;}
+.mfi{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.15s;}
+.mfi:focus{border-color:var(--accent);}
+.fr{display:flex;gap:12px;}.fr .fg{flex:1;}
+.ma{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;z-index:9999;transform:translateY(80px);opacity:0;transition:all 0.3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.ok{border-color:rgba(63,185,80,0.4);color:var(--success);}
+.toast.err{border-color:rgba(248,81,73,0.4);color:var(--danger);}
+.toast.warn{border-color:rgba(245,158,11,0.4);color:var(--thera);}
+mark{background:rgba(0,212,170,0.15);color:var(--accent);border-radius:2px;}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">☢ NUCMED</div>
+    <div class="login-sub">Staff Scheduling System</div>
+    <div class="login-badge">ADMIN ACCESS</div>
+    <input type="email" class="fi" id="login-email" placeholder="Email address" />
+    <input type="password" class="fi" id="login-pass" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()" />
+    <button class="btn-login" onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app-wrap" id="app-wrap">
+<header>
+  <div class="logo">☢ NUCMED</div>
+  <span class="admin-badge">ADMIN</span>
+  <nav>
+    <button class="nav-btn active" onclick="goTo('dashboard',this)">Dashboard</button>
+    <button class="nav-btn" onclick="goTo('schedule',this)">Schedule</button>
+    <button class="nav-btn gen-nav" onclick="goTo('generator',this)">⚡ Generate Week</button>
+    <button class="nav-btn" onclick="goTo('pto',this)">PTO Calendar</button>
+    <button class="nav-btn" onclick="goTo('staff',this)">Staff Roster</button>
+  </nav>
+  <div class="user-pill">
+    <span id="user-email">—</span>
+    <button class="btn-signout" onclick="doSignOut()">Sign out</button>
+  </div>
+</header>
+
+<main>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <div><div class="page-title">Admin Dashboard</div><div class="page-sub" id="dash-sub">—</div></div>
+    <button class="btn btn-p" onclick="goTo('generator',document.querySelectorAll('.nav-btn')[2])">⚡ Generate Next Week</button>
+  </div>
+  <div class="g4" style="margin-bottom:24px" id="stats"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-header"><div class="card-title" id="today-ttl">Today</div><span class="ib ib-g" id="today-cnt"></span></div>
+      <div style="overflow-x:auto"><table class="dt" id="today-tbl"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Upcoming PTO</div><span class="ib ib-a">30 days</span></div>
+      <div style="padding:20px" id="pto-up"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDULE -->
+<div class="page" id="page-schedule">
+  <div class="page-header">
+    <div><div class="page-title">Schedule</div><div class="page-sub" id="sched-sub">—</div></div>
+    <div class="controls">
+      <select class="fsel" id="f-dept" onchange="renderSchedule()">
+        <option value="">All Departments</option>
+        <option>PET</option><option>General</option><option>Theranostics</option><option>Support</option>
+      </select>
+      <input class="si" placeholder="Search tech or room…" id="f-tech" oninput="renderSchedule()" />
+      <button class="btn btn-p" onclick="openShiftModal()">+ Add Shift</button>
+    </div>
+  </div>
+  <div id="sched-body"></div>
+</div>
+
+<!-- GENERATOR -->
+<div class="page" id="page-generator">
+  <div class="page-header">
+    <div><div class="page-title">⚡ Schedule Generator</div><div class="page-sub">Generate a draft week, review every slot, then publish live</div></div>
+  </div>
+
+  <div class="gen-setup">
+    <div class="gen-setup-title">📅 Select the week to schedule — only Mondays are selectable</div>
+    <div class="week-picker">
+      <div>
+        <label style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;">Week Starting (Monday)</label>
+        <div class="cal-wrap" id="cal-wrap">
+          <div class="cal-trigger" id="cal-trigger" onclick="toggleCal()">
+            <span>📅</span>
+            <span class="cal-trigger-text" id="cal-trigger-text">Pick a Monday…</span>
+            <span class="cal-trigger-arrow">▼</span>
+          </div>
+          <div class="cal-dropdown" id="cal-dropdown">
+            <div class="cal-nav">
+              <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+              <span class="cal-month-label" id="cal-month-label"></span>
+              <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+            </div>
+            <div class="cal-full-grid" id="cal-full-grid"></div>
+            <div class="cal-footer">
+              <div class="cal-footer-item"><div style="width:12px;height:12px;border-radius:3px;background:rgba(0,212,170,0.12);outline:1px solid rgba(0,212,170,0.3)"></div> Selectable Monday</div>
+              <div class="cal-footer-item"><div style="width:6px;height:6px;border-radius:50%;background:var(--pet)"></div> Already scheduled</div>
+            </div>
+          </div>
+        </div>
+        <input type="hidden" id="gen-week-start" />
+      </div>
+      <button class="btn btn-p" style="height:42px;align-self:flex-end" onclick="generateDraft()">⚡ Generate Draft</button>
+    </div>
+  </div>
+
+  <div id="gen-draft-area" style="display:none">
+    <div class="draft-banner">
+      <div>
+        <div class="draft-banner-text">📋 DRAFT — Not yet published</div>
+        <div class="draft-banner-sub" id="draft-sub">Review all slots, adjust any assignments, then publish</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-warn" onclick="clearDraft()">✕ Discard</button>
+        <button class="btn btn-p" onclick="publishDraft()" id="pub-btn">✓ Publish Live</button>
+      </div>
+    </div>
+    <div id="gen-alerts"></div>
+    <div id="gen-days"></div>
+  </div>
+</div>
+
+<!-- PTO -->
+<div class="page" id="page-pto">
+  <div class="page-header">
+    <div><div class="page-title">PTO Calendar 2026</div><div class="page-sub">Click any weekday to add/remove PTO</div></div>
+    <div class="controls">
+      <select class="fsel" id="f-pto-staff" onchange="renderPTO()"><option value="">All Staff</option></select>
+      <input class="si" placeholder="Filter by name…" id="f-pto-srch" oninput="renderPTO()" />
+    </div>
+  </div>
+  <div class="mg" id="pto-grid"></div>
+</div>
+
+<!-- STAFF -->
+<div class="page" id="page-staff">
+  <div class="page-header">
+    <div><div class="page-title">Staff Roster</div><div class="page-sub" id="staff-sub">—</div></div>
+    <div class="controls">
+      <select class="fsel" id="f-qual" onchange="renderStaff()">
+        <option value="">All Qualifications</option>
+        <option>PET</option><option>General</option><option>Theranostics</option>
+      </select>
+      <input class="si" placeholder="Search staff…" id="f-staff" oninput="renderStaff()" />
+      <button class="btn btn-p" onclick="openStaffModal()">+ Add Staff</button>
+    </div>
+  </div>
+  <div class="sg" id="staff-grid"></div>
+</div>
+
+</main>
+</div>
+
+<!-- SHIFT MODAL -->
+<div class="overlay" id="shift-modal">
+  <div class="modal">
+    <div class="modal-title"><span id="shift-modal-ttl">Add Shift</span><button class="modal-close" onclick="closeModal('shift-modal')">✕</button></div>
+    <input type="hidden" id="shift-edit-id" />
+    <div class="fg"><label>Date</label><input type="date" class="mfi" id="s-date" /></div>
+    <div class="fr">
+      <div class="fg"><label>Department</label><select class="mfi" id="s-dept"><option>PET</option><option>General</option><option>Theranostics</option><option>Support</option></select></div>
+      <div class="fg"><label>Room</label><select class="mfi" id="s-room"><option>NM1</option><option>NM2</option><option>NM4</option><option>NM6</option><option>NM7</option><option>NM8</option><option>NM9</option><option>Pharmacy</option><option>Wet Work</option><option>Therapy Room</option><option>PET SUPPORT</option></select></div>
+    </div>
+    <div class="fg"><label>Shift Time</label><select class="mfi" id="s-shift"><option>6:00am-2:30pm</option><option>6:30am-3:00pm</option><option>6:45am-3:15pm</option><option>7:30am-4:00pm</option><option>8:00am-4:30pm</option><option>8:30am-5:00pm</option><option>9:30am-6:00pm</option></select></div>
+    <div class="fg"><label>Assigned Tech</label><select class="mfi" id="s-tech"></select></div>
+    <div class="fg"><label>Notes (optional)</label><input type="text" class="mfi" id="s-notes" placeholder="Any notes…" /></div>
+    <div class="ma"><button class="btn btn-g" onclick="closeModal('shift-modal')">Cancel</button><button class="btn btn-p" onclick="saveShift()">Save Shift</button></div>
+  </div>
+</div>
+
+<!-- STAFF MODAL -->
+<div class="overlay" id="staff-modal">
+  <div class="modal">
+    <div class="modal-title"><span id="staff-modal-ttl">Add Staff Member</span><button class="modal-close" onclick="closeModal('staff-modal')">✕</button></div>
+    <input type="hidden" id="staff-edit-id" />
+    <div class="fr">
+      <div class="fg"><label>Full Name</label><input type="text" class="mfi" id="st-name" placeholder="Jane Smith (JS)" /></div>
+      <div class="fg"><label>Initials</label><input type="text" class="mfi" id="st-init" placeholder="JS" maxlength="4" /></div>
+    </div>
+    <div class="fg"><label>Available Days</label><input type="text" class="mfi" id="st-days" placeholder="Monday, Tuesday, Wednesday, Thursday, Friday" /></div>
+    <div class="fg"><label>Qualifications (comma-separated)</label><input type="text" class="mfi" id="st-quals" placeholder="PET, General" /></div>
+    <div class="fg"><label>PTO Dates 2026</label><input type="text" class="mfi" id="st-pto" placeholder="April 1-5, June 10-14" /></div>
+    <div class="ma"><button class="btn btn-g" onclick="closeModal('staff-modal')">Cancel</button><button class="btn btn-p" onclick="saveStaff()">Save</button></div>
+  </div>
+</div>
+
+<!-- PTO MODAL -->
+<div class="overlay" id="pto-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title"><span id="pto-modal-ttl">Edit PTO</span><button class="modal-close" onclick="closeModal('pto-modal')">✕</button></div>
+    <div class="fg"><label>Staff Member</label><select class="mfi" id="pto-staff-sel"></select></div>
+    <div class="fg"><label>Action</label><select class="mfi" id="pto-action"><option value="add">Add PTO this day</option><option value="remove">Remove PTO this day</option></select></div>
+    <input type="hidden" id="pto-date-val" />
+    <div class="ma"><button class="btn btn-g" onclick="closeModal('pto-modal')">Cancel</button><button class="btn btn-p" onclick="savePTO()">Save</button></div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL='https://pkpbeiewrfrmevrokesc.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrcGJlaWV3cmZybWV2cm9rZXNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NjM4MTYsImV4cCI6MjA4NzQzOTgxNn0.ZTS48kvRvWr_jqJigleljCQXWc0peTJQl6GIY_wrp68';
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+let STAFF=[],SCHEDULE=[],PTO=[],DRAFT=[];
+
+// ============================================================
+// SHIFT TEMPLATE — the fixed weekly slot structure
+// ============================================================
+const TEMPLATE=[
+  // PET cameras — fill first, rotate fairly
+  {dept:'PET',room:'NM1',shift:'6:00am-2:30pm',type:'early'},
+  {dept:'PET',room:'NM1',shift:'7:30am-4:00pm',type:'mid'},
+  {dept:'PET',room:'NM1',shift:'9:30am-6:00pm',type:'late'},
+  {dept:'PET',room:'NM7',shift:'6:00am-2:30pm',type:'early'},
+  {dept:'PET',room:'NM7',shift:'8:30am-5:00pm',type:'mid'},
+  {dept:'PET',room:'NM7',shift:'9:30am-6:00pm',type:'late'},
+  {dept:'PET',room:'NM9',shift:'6:00am-2:30pm',type:'early'},
+  {dept:'PET',room:'NM9',shift:'8:30am-5:00pm',type:'mid'},
+  {dept:'PET',room:'NM9',shift:'9:30am-6:00pm',type:'late'},
+  // PET Support — auto-filled with Lexi/Natalie/Tyler on days available
+  {dept:'Support',room:'PET SUPPORT 1',shift:'8:00am-4:30pm',support:true},
+  {dept:'Support',room:'PET SUPPORT 2',shift:'8:00am-4:30pm',support:true},
+  // Theranostics
+  {dept:'Theranostics',room:'Therapy Room',shift:'7:30am-4:00pm'},
+  // General — fill after PET
+  {dept:'General',room:'Pharmacy',shift:'6:30am-3:00pm'},
+  {dept:'General',room:'Wet Work',shift:'6:45am-3:15pm'},
+  {dept:'General',room:'NM2',shift:'8:00am-4:30pm'},
+  {dept:'General',room:'NM4',shift:'8:00am-4:30pm'},
+  {dept:'General',room:'NM6',shift:'9:30am-6:00pm'},
+  {dept:'General',room:'NM8',shift:'7:30am-4:00pm'},
+];
+
+const SUPPORT_STAFF=['Lexi (LEX)','Natalie (NAT)','Tyler (TB)'];
+const DAY_NAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS={February:{n:2,d:28},March:{n:3,d:31},April:{n:4,d:30},May:{n:5,d:31},June:{n:6,d:30},July:{n:7,d:31},August:{n:8,d:31},September:{n:9,d:30},October:{n:10,d:31},November:{n:11,d:30},December:{n:12,d:31}};
+const TC=['#7c6ff7','#10b981','#f59e0b','#ec4899','#3b82f6','#8b5cf6','#ef4444','#06b6d4','#84cc16','#f97316','#14b8a6','#a855f7'];
+
+function tc(n){let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))&0xffffffff;return TC[Math.abs(h)%TC.length];}
+function inits(name){const s=STAFF.find(x=>x.name===name);return s?s.initials:(name.match(/\(([^)]+)\)/)||[,'??'])[1];}
+function chip(name){if(!name)return`<span style="color:var(--text3);font-size:12px">—</span>`;return`<span class="chip"><span class="av" style="background:${tc(name)}">${inits(name)}</span>${name}</span>`;}
+function dp(dept){return`<span class="dept-pill dp-${dept.replace(/\s/g,'')}">${dept}</span>`;}
+function fmtD(iso){return new Date(iso+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});}
+function wkDates(){return[...new Set(SCHEDULE.map(s=>s.shift_date))].sort().slice(0,10);}
+function closest(ds){const t=new Date().toISOString().split('T')[0];const u=ds.filter(d=>d>=t);return u.length?u[0]:ds[ds.length-1];}
+function dowStart(y,m){return new Date(y,m-1,1).getDay();}
+function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// ============================================================
+// AUTH
+// ============================================================
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-err');
+  err.style.display='none';
+  const{error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){err.textContent=error.message;err.style.display='block';}
+  else showApp();
+}
+async function doSignOut(){await sb.auth.signOut();document.getElementById('app-wrap').style.display='none';document.getElementById('login-wrap').style.display='flex';}
+async function checkSession(){const{data:{session}}=await sb.auth.getSession();if(session)showApp();}
+function showApp(){
+  document.getElementById('login-wrap').style.display='none';
+  document.getElementById('app-wrap').style.display='block';
+  sb.auth.getUser().then(({data:{user}})=>{if(user)document.getElementById('user-email').textContent=user.email;});
+  // Default calendar to next Monday's month
+  const d=new Date();
+  const toMon=(8-d.getDay())%7||7;
+  d.setDate(d.getDate()+toMon);
+  calYear=d.getFullYear();calMonth=d.getMonth();
+  // Pre-select next Monday
+  selectMonday(d.toISOString().split('T')[0]);
+  loadAll();
+}
+
+// ============================================================
+// DATA
+// ============================================================
+async function loadAll(){
+  try{
+    const[s1,s2,s3]=await Promise.all([
+      sb.from('staff').select('*').order('name'),
+      sb.from('schedule').select('*').order('shift_date'),
+      sb.from('pto').select('*').order('pto_date'),
+    ]);
+    STAFF=s1.data||[];SCHEDULE=s2.data||[];PTO=s3.data||[];
+    renderAll();
+  }catch(e){toast('Failed to load data','err');}
+}
+
+function renderAll(){
+  document.getElementById('f-pto-staff').innerHTML='<option value="">All Staff</option>'+STAFF.map(s=>`<option>${s.name}</option>`).join('');
+  renderDashboard();renderSchedule();renderStaff();renderPTO();
+}
+
+function goTo(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard(){
+  const dates=wkDates();
+  if(!dates.length){document.getElementById('dash-sub').textContent='No schedule data yet — generate your first week!';return;}
+  const today=closest(dates);
+  const te=SCHEDULE.filter(s=>s.shift_date===today);
+  document.getElementById('dash-sub').textContent=`Showing week of ${fmtD(dates[0])}`;
+  const dc={PET:0,General:0,Theranostics:0,Support:0};
+  te.forEach(s=>{if(dc[s.department]!==undefined)dc[s.department]++;});
+  const sc=[{k:'PET',c:'sc-pet',col:'#9d93ff',l:'PET'},{k:'General',c:'sc-gen',col:'#34d399',l:'General'},{k:'Theranostics',c:'sc-thera',col:'#fbbf24',l:'Theranostics'},{k:'Support',c:'sc-sup',col:'#f472b6',l:'Support'}];
+  document.getElementById('stats').innerHTML=sc.map(x=>`<div class="stat-card ${x.c}"><div class="stat-label">${x.l}</div><div class="stat-val" style="color:${x.col}">${dc[x.k]}</div><div class="stat-sub">Today</div></div>`).join('');
+  document.getElementById('today-ttl').textContent=fmtD(today);
+  document.getElementById('today-cnt').textContent=`${te.length} shifts`;
+  document.getElementById('today-tbl').innerHTML=`<thead><tr><th>Dept</th><th>Room</th><th>Shift</th><th>Tech</th></tr></thead><tbody>${te.map(s=>`<tr><td>${dp(s.department)}</td><td><span class="rb">${s.room}</span></td><td><span class="sb">${s.shift_time}</span></td><td>${chip(s.assigned_tech)}</td></tr>`).join('')}</tbody>`;
+  const t=new Date().toISOString().split('T')[0];
+  const cut=new Date();cut.setDate(cut.getDate()+30);
+  const up=PTO.filter(p=>p.pto_date>=t&&new Date(p.pto_date)<=cut).sort((a,b)=>a.pto_date.localeCompare(b.pto_date));
+  const grp={};up.forEach(p=>{if(!grp[p.staff_name])grp[p.staff_name]=[];grp[p.staff_name].push(p.pto_date);});
+  document.getElementById('pto-up').innerHTML=Object.entries(grp).slice(0,10).map(([n,ds])=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(38,48,64,0.6)">${chip(n)}<span style="font-size:12px;color:var(--text2)">${new Date(ds[0]+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}${ds.length>1?' – '+new Date(ds[ds.length-1]+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}</span></div>`).join('')||'<div style="color:var(--text2)">No upcoming PTO</div>';
+}
+
+// ============================================================
+// SCHEDULE
+// ============================================================
+function renderSchedule(){
+  const dF=document.getElementById('f-dept').value;
+  const sF=document.getElementById('f-tech').value.toLowerCase().trim();
+  const dates=wkDates();
+  let html='';
+  dates.forEach(date=>{
+    let e=SCHEDULE.filter(s=>s.shift_date===date);
+    if(dF)e=e.filter(s=>s.department===dF);
+    if(sF)e=e.filter(s=>s.assigned_tech.toLowerCase().includes(sF)||s.room.toLowerCase().includes(sF));
+    if(!e.length)return;
+    html+=`<div class="sd">${fmtD(date)}<span style="color:var(--text3)">${e.length} shifts</span></div>`;
+    html+=`<div class="card" style="margin-bottom:0"><div style="overflow-x:auto"><table class="dt"><thead><tr><th>Dept</th><th>Room</th><th>Shift</th><th>Tech</th><th>Notes</th><th></th></tr></thead><tbody>`;
+    e.forEach(s=>{html+=`<tr><td>${dp(s.department)}</td><td><span class="rb">${s.room}</span></td><td><span class="sb">${s.shift_time}</span></td><td>${chip(s.assigned_tech)}</td><td style="color:var(--text2);font-size:12px">${s.notes||'—'}</td><td><div class="ea"><button class="btn-icon" onclick="editShift('${s.id}')">✏</button><button class="btn-icon" style="background:rgba(248,81,73,0.1);color:var(--danger);border-color:rgba(248,81,73,0.3)" onclick="deleteShift('${s.id}')">✕</button></div></td></tr>`;});
+    html+=`</tbody></table></div></div>`;
+  });
+  if(!html)html=`<div style="text-align:center;padding:48px;color:var(--text2)">No entries found</div>`;
+  document.getElementById('sched-body').innerHTML=html;
+  document.getElementById('sched-sub').textContent=`${SCHEDULE.length} total shifts in database`;
+}
+
+// ============================================================
+// SCHEDULE GENERATOR
+// ============================================================
+function getWeekDays(mondayISO){
+  const days=[];const start=new Date(mondayISO+'T12:00:00');
+  for(let i=0;i<5;i++){const d=new Date(start);d.setDate(d.getDate()+i);days.push(d.toISOString().split('T')[0]);}
+  return days;
+}
+
+function isOnPTO(name,date){return PTO.some(p=>p.staff_name===name&&p.pto_date===date);}
+
+function isAvailable(staff,date){
+  const dayName=DAY_NAMES[new Date(date+'T12:00:00').getDay()];
+  return(staff.available_days||'').toLowerCase().includes(dayName.toLowerCase());
+}
+
+function isSupport(staff){return SUPPORT_STAFF.includes(staff.name);}
+
+// Count shift types this week for fairness scoring
+function shiftCounts(name,weekDates){
+  const all=[...SCHEDULE,...DRAFT].filter(s=>s.assigned_tech===name&&weekDates.includes(s.shift_date));
+  return{
+    early:all.filter(s=>s.shift_time.startsWith('6:0')||s.shift_time.startsWith('6:3')||s.shift_time.startsWith('6:4')).length,
+    late:all.filter(s=>s.shift_time.startsWith('9:3')).length,
+    total:all.length
+  };
+}
+
+// Get rooms worked recently to encourage rotation
+function recentRooms(name){return SCHEDULE.filter(s=>s.assigned_tech===name).slice(-8).map(s=>s.room);}
+
+// Staff with fixed shift constraints (name -> allowed shift times)
+const SHIFT_CONSTRAINTS={
+  'John (JU)':['9:30am-6:00pm'],  // John only works 9:30-6pm PET
+};
+
+function isShiftAllowed(staffName, shiftTime){
+  if(!SHIFT_CONSTRAINTS[staffName]) return true;
+  return SHIFT_CONSTRAINTS[staffName].includes(shiftTime);
+}
+
+// Get the shift time this tech has already been assigned this week (for consistency)
+function assignedShiftThisWeek(name, weekDates){
+  const assigned=DRAFT.filter(s=>s.assigned_tech===name&&weekDates.includes(s.shift_date));
+  if(!assigned.length) return null;
+  // Return the most common shift time they've been given
+  const counts={};
+  assigned.forEach(s=>{counts[s.shift_time]=(counts[s.shift_time]||0)+1;});
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+}
+
+function generateDraft(){
+  const mondayISO=document.getElementById('gen-week-start').value;
+  if(!mondayISO){toast('Please select a week','err');return;}
+  const d=new Date(mondayISO+'T12:00:00');
+  if(d.getDay()!==1){toast('Please pick a Monday','err');return;}
+
+  DRAFT=[];
+  const weekDates=getWeekDays(mondayISO);
+  const alerts=[];
+
+  // ---------------------------------------------------------------
+  // SMART PRIORITY ALGORITHM
+  //
+  // Staff categories (from DB):
+  //   PET-only:     Joe M, Joe A, John, Thomas, Maria C, Jen
+  //   Dual PET+Gen: Adam, Andrew, Brittany, Eilena, McKinley, Naomi, Julianna
+  //   General-only: Floyd, Lynn, Rebecca
+  //   Support:      Lexi, Natalie, Tyler (manual only)
+  //   Theranostics: Karina
+  //
+  // Priority order:
+  //   1. Fill PET lanes with PET-only staff first (John locked to 9:30pm)
+  //   2. Fill remaining PET lanes with dual staff only if needed
+  //   3. Route ALL unused dual staff to General gaps
+  //   4. Fill General-only lanes with General-only staff
+  //   5. Any truly leftover dual staff can go to Support
+  //   6. Keep same person in same lane all week — only sub if unavailable
+  // ---------------------------------------------------------------
+
+  const petOnlyNames=['Joe M (JM)','Joe A (JA)','John (JU)','Thomas M (TM)','Maria C (MC)','Jen (JLM)'];
+  const dualNames=['Adam (AS)','Andrew (AR)','Brittany (BLP)','Eilena (EK)','McKinley (MSP)','Naomi (NS)','Julianna (Jul)'];
+
+  function isPETOnly(s){ return petOnlyNames.includes(s.name); }
+  function isDual(s){ return dualNames.includes(s.name); }
+
+  function canWorkLane(s, lane){
+    if(isSupport(s)) return false;
+    if(!s.qualifications?.includes(lane.dept)) return false;
+    if(!isShiftAllowed(s.name, lane.shift)) return false;
+    return true;
+  }
+
+  function availableOnDay(s, dateISO){
+    return isAvailable(s, dateISO) && !isOnPTO(s.name, dateISO);
+  }
+
+  function availableSomeDayThisWeek(s, lane){
+    return weekDates.some(d => availableOnDay(s,d) && canWorkLane(s,lane));
+  }
+
+  const petLanes       = TEMPLATE.filter(t=>t.dept==='PET' && !t.support);
+  const generalLanes   = TEMPLATE.filter(t=>t.dept==='General' && !t.support);
+  const theraLanes     = TEMPLATE.filter(t=>t.dept==='Theranostics' && !t.support);
+
+  // usedByDay[dateISO] = Set of staff names already assigned that day
+  const usedByDay={};
+  weekDates.forEach(d=>usedByDay[d]=new Set());
+
+  // laneOwner: laneKey -> staffName for whole week
+  const laneOwner={};
+
+  // ---- HELPER: pick best owner for a lane from a candidate pool ----
+  // pickOwner: find best owner for a lane from pool — each person can own AT MOST ONE lane
+  function pickOwner(lane, pool, allowMultiOwn=false){
+    const alreadyOwned=new Set(Object.values(laneOwner).filter(Boolean));
+    const eligible=pool.filter(s=>{
+      if(!canWorkLane(s,lane)) return false;
+      if(!availableSomeDayThisWeek(s,lane)) return false;
+      if(!allowMultiOwn && alreadyOwned.has(s.name)) return false; // each person owns exactly ONE lane
+      return true;
+    });
+    if(!eligible.length) return null;
+    const scored=eligible.map(s=>{
+      let score=0;
+      const coverDays=weekDates.filter(d=>availableOnDay(s,d)).length;
+      score -= coverDays*4;  // strongly prefer someone who covers the most days
+      const recent=recentRooms(s.name);
+      if(recent.slice(-2).includes(lane.room)) score+=4;
+      if(recent.slice(-5).includes(lane.room)) score+=2;
+      score+=Math.random()*0.4;
+      return{s,score};
+    });
+    scored.sort((a,b)=>a.score-b.score);
+    return scored[0].s.name;
+  }
+
+  // ---- PRE-STEP: Calculate how many dual staff PET needs vs General needs ----
+  // PET-only staff available this week
+  const petOnlyAvailable=STAFF.filter(s=>isPETOnly(s)&&weekDates.some(d=>availableOnDay(s,d)&&canWorkLane(s,{dept:'PET',shift:'any',...s}))).length;
+  // More precisely: count PET-only who can work any PET lane
+  const petOnlyCount=STAFF.filter(s=>isPETOnly(s)&&weekDates.some(d=>availableOnDay(s,d))).length;
+  const petLanesNeedingDual=Math.max(0, petLanes.length - petOnlyCount);
+
+  // General-only staff available
+  const genOnlyCount=STAFF.filter(s=>s.qualifications?.includes('General')&&!s.qualifications?.includes('PET')&&!isSupport(s)&&weekDates.some(d=>availableOnDay(s,d))).length;
+  const generalLanesNeedingDual=Math.max(0, generalLanes.length - genOnlyCount);
+
+  // Total duals available this week
+  const dualsAvailable=STAFF.filter(s=>isDual(s)&&weekDates.some(d=>availableOnDay(s,d)));
+
+  // PET gets first pick of duals, General gets the rest
+  // Sort duals by coverage days descending so we assign the most-available people first
+  const dualsSorted=dualsAvailable.slice().sort((a,b)=>{
+    const dA=weekDates.filter(d=>availableOnDay(a,d)).length;
+    const dB=weekDates.filter(d=>availableOnDay(b,d)).length;
+    return dB-dA;
+  });
+  const reservedForPET=new Set(dualsSorted.slice(0,petLanesNeedingDual).map(s=>s.name));
+  const reservedForGeneral=new Set(dualsSorted.slice(petLanesNeedingDual,petLanesNeedingDual+generalLanesNeedingDual).map(s=>s.name));
+
+  // ---- STEP 1: Theranostics ----
+  theraLanes.forEach(lane=>{
+    const laneKey=`${lane.dept}|${lane.room}|${lane.shift}`;
+    const pool=STAFF.filter(s=>!isSupport(s)&&s.qualifications?.includes('Theranostics'));
+    laneOwner[laneKey]=pickOwner(lane,pool);
+  });
+
+  // ---- STEP 2: PET lanes — PET-only staff only (no dual staff needed in PET) ----
+  // John's 9:30pm lanes processed first — guaranteed slot
+  const johnLanes=petLanes.filter(l=>l.shift==='9:30am-6:00pm');
+  const otherPetLanes=petLanes.filter(l=>l.shift!=='9:30am-6:00pm');
+  const orderedPetLanes=[...johnLanes,...otherPetLanes];
+
+  orderedPetLanes.forEach(lane=>{
+    const laneKey=`${lane.dept}|${lane.room}|${lane.shift}`;
+    // PET-only staff first — never touch dual staff reserved for General
+    const petOnlyPool=STAFF.filter(s=>isPETOnly(s));
+    let owner=pickOwner(lane, petOnlyPool);
+    if(!owner){
+      // Use duals reserved for PET
+      const petDuals=STAFF.filter(s=>isDual(s)&&reservedForPET.has(s.name));
+      owner=pickOwner(lane, petDuals);
+    }
+    if(!owner){
+      // PET must be filled — use any available dual not yet owned
+      owner=pickOwner(lane, STAFF.filter(s=>isDual(s)));
+    }
+    laneOwner[laneKey]=owner;
+  });
+
+  // ---- STEP 3: General lanes — General-only first, then reserved duals ----
+  generalLanes.forEach(lane=>{
+    const laneKey=`${lane.dept}|${lane.room}|${lane.shift}`;
+    const genOnlyPool=STAFF.filter(s=>s.qualifications?.includes('General')&&!s.qualifications?.includes('PET')&&!isSupport(s));
+    let owner=pickOwner(lane, genOnlyPool);
+    if(!owner){
+      // Use duals reserved for General
+      const reservedPool=STAFF.filter(s=>isDual(s)&&reservedForGeneral.has(s.name));
+      owner=pickOwner(lane, reservedPool);
+    }
+    if(!owner){
+      // Last resort: any available dual
+      owner=pickOwner(lane, STAFF.filter(s=>isDual(s)), true);
+    }
+    laneOwner[laneKey]=owner;
+  });
+
+  // ---- STEP 4: Build day-by-day DRAFT from lane owners ----
+  const allLanes=[...theraLanes,...orderedPetLanes,...generalLanes];
+
+  allLanes.forEach(lane=>{
+    const laneKey=`${lane.dept}|${lane.room}|${lane.shift}`;
+    const owner=laneOwner[laneKey];
+
+    weekDates.forEach(dateISO=>{
+      const entry={shift_date:dateISO,department:lane.dept,room:lane.room,shift_time:lane.shift,assigned_tech:null,notes:null,_manual:false,_unfilled:false};
+
+      const ownerStaff=owner?STAFF.find(s=>s.name===owner):null;
+      const ownerAvail=ownerStaff && availableOnDay(ownerStaff,dateISO) && canWorkLane(ownerStaff,lane);
+
+      if(ownerAvail && !usedByDay[dateISO].has(owner)){
+        entry.assigned_tech=owner;
+        usedByDay[dateISO].add(owner);
+      } else {
+        // Find substitute — prefer same category as owner, same shift time
+        const isOwnerPETOnly=owner&&petOnlyNames.includes(owner);
+        const isOwnerDual=owner&&dualNames.includes(owner);
+
+        // Build sub pool: right quals, available, not already used today
+        let subPool=STAFF.filter(s=>{
+          if(isSupport(s)) return false;
+          if(!canWorkLane(s,lane)) return false;
+          if(!availableOnDay(s,dateISO)) return false;
+          if(usedByDay[dateISO].has(s.name)) return false;
+          return true;
+        });
+
+        if(!subPool.length){
+          entry._unfilled=true;
+          alerts.push(`⚠ No available ${lane.dept} tech for ${lane.room} ${lane.shift} on ${fmtD(dateISO)}`);
+        } else {
+          const scored=subPool.map(s=>{
+            let score=0;
+            // Strongly prefer keeping same shift time all week for this sub
+            const theirDraftShifts=DRAFT.filter(x=>x.assigned_tech===s.name&&weekDates.includes(x.shift_date));
+            const theirShiftTimes=new Set(theirDraftShifts.map(x=>x.shift_time));
+            if(theirShiftTimes.size>0 && theirShiftTimes.has(lane.shift)) score-=8; // already on this shift = ideal
+            if(theirShiftTimes.size>0 && !theirShiftTimes.has(lane.shift)) score+=10; // switching shift = bad
+            // Prefer PET-only for PET lanes (don't pull dual staff into PET if not needed)
+            if(lane.dept==='PET' && isPETOnly(s)) score-=5;
+            if(lane.dept==='PET' && isDual(s)) score+=3;
+            // Spread load
+            score+=theirDraftShifts.length*1.5;
+            score+=Math.random()*0.4;
+            return{s,score};
+          });
+          scored.sort((a,b)=>a.score-b.score);
+          entry.assigned_tech=scored[0].s.name;
+          usedByDay[dateISO].add(entry.assigned_tech);
+        }
+      }
+      DRAFT.push(entry);
+    });
+  });
+
+  // ---- STEP 5: PET Support slots — auto-fill Lexi/Natalie/Tyler on days available ----
+  const supportLanes=TEMPLATE.filter(t=>t.support);
+  const supportStaffNames=['Lexi (LEX)','Natalie (NAT)','Tyler (TB)'];
+
+  // For each day, collect which support staff are available
+  supportLanes.forEach((lane,laneIdx)=>{
+    weekDates.forEach(dateISO=>{
+      const entry={shift_date:dateISO,department:lane.dept,room:lane.room,shift_time:lane.shift,assigned_tech:null,notes:null,_manual:true,_support:true,_unfilled:false};
+      // Find available support staff not yet used in a support slot this day
+      const usedSupportToday=DRAFT.filter(x=>x.shift_date===dateISO&&x._support&&x.assigned_tech).map(x=>x.assigned_tech);
+      const avail=supportStaffNames.filter(name=>{
+        if(usedSupportToday.includes(name)) return false;
+        const s=STAFF.find(x=>x.name===name);
+        return s && isAvailable(s,dateISO) && !isOnPTO(name,dateISO);
+      });
+      if(avail.length>0) entry.assigned_tech=avail[0]; // assign first available
+      DRAFT.push(entry);
+    });
+  });
+
+  // ---- STEP 6: PTO row — auto-detect who is on PTO each day ----
+  // This is read-only display, stored as _pto entries
+  weekDates.forEach(dateISO=>{
+    const onPTO=STAFF.filter(s=>!isSupport(s)&&isOnPTO(s.name,dateISO)).map(s=>s.name);
+    // Store up to 5 PTO entries per day
+    for(let i=0;i<5;i++){
+      DRAFT.push({shift_date:dateISO,department:'PTO',room:'PTO',shift_time:'',assigned_tech:onPTO[i]||null,notes:null,_manual:false,_pto:true,_unfilled:false,_ptoIdx:i});
+    }
+  });
+
+  renderDraft(weekDates,[...new Set(alerts)]);
+}
+
+function buildOpts(slot, dateISO){
+  const isSupport=slot._support||slot._manual;
+  const qual=slot.department;
+  let eligible, others;
+  if(isSupport){
+    // Support slots: primary = Lexi/Natalie/Tyler; fallback = anyone available
+    eligible=STAFF.filter(s=>['Lexi (LEX)','Natalie (NAT)','Tyler (TB)'].includes(s.name)&&isAvailable(s,dateISO)&&!isOnPTO(s.name,dateISO));
+    others=STAFF.filter(s=>!eligible.find(e=>e.name===s.name)&&!isOnPTO(s.name,dateISO)&&isAvailable(s,dateISO));
+  } else {
+    eligible=STAFF.filter(s=>!['Lexi (LEX)','Natalie (NAT)','Tyler (TB)'].includes(s.name)&&s.qualifications?.includes(qual)&&isAvailable(s,dateISO)&&!isOnPTO(s.name,dateISO));
+    others=STAFF.filter(s=>!eligible.find(e=>e.name===s.name)&&!['Lexi (LEX)','Natalie (NAT)','Tyler (TB)'].includes(s.name));
+  }
+  let opts=`<option value="">— Unassigned —</option>`;
+  eligible.forEach(s=>{opts+=`<option value="${s.name}"${slot.assigned_tech===s.name?' selected':''}>${s.name}</option>`;});
+  if(others.length){
+    opts+=`<optgroup label="⚠ Outside qualifications">`;
+    others.forEach(s=>{opts+=`<option value="${s.name}"${slot.assigned_tech===s.name?' selected':''}>${s.name}</option>`;});
+    opts+=`</optgroup>`;
+  }
+  return opts;
+}
+
+function renderDraft(weekDates,alerts){
+  document.getElementById('gen-draft-area').style.display='block';
+  const ws=new Date(weekDates[0]+'T12:00:00'),we=new Date(weekDates[4]+'T12:00:00');
+  document.getElementById('draft-sub').textContent=`Week of ${ws.toLocaleDateString('en-US',{month:'long',day:'numeric'})} – ${we.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}`;
+  document.getElementById('gen-alerts').innerHTML=alerts.map(a=>`<div class="alert-row">${a}</div>`).join('');
+
+  // Day headers
+  const DAY_ABBR=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  let hdrs='<th style="width:160px">Room / Shift</th>';
+  weekDates.forEach(d=>{
+    const dt=new Date(d+'T12:00:00');
+    const unfilledCount=DRAFT.filter(s=>s.shift_date===d&&!s.assigned_tech&&!s._manual&&!s._support&&!s._pto).length;
+    const badge=unfilledCount?`<div style="font-size:9px;color:var(--danger);font-weight:600;margin-top:3px">⚠ ${unfilledCount} unfilled</div>`:`<div style="font-size:9px;color:var(--success);margin-top:3px">✓ Staffed</div>`;
+    hdrs+=`<th class="day-th">${DAY_ABBR[dt.getDay()]} ${dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})}${badge}</th>`;
+  });
+
+  // Build rows grouped by dept
+  const deptGroups=[
+    {label:'🟣  PET',slots:TEMPLATE.filter(t=>t.dept==='PET')},
+    {label:'  PET Support',slots:TEMPLATE.filter(t=>t.support)},
+    {label:'🟡  Theranostics',slots:TEMPLATE.filter(t=>t.dept==='Theranostics')},
+    {label:'🟢  General',slots:TEMPLATE.filter(t=>t.dept==='General')},
+    {label:'🏖  PTO / Out',slots:[{dept:'PTO',room:'PTO',shift:'',_ptoRow:true}]},
+  ];
+
+  let rows='';
+  deptGroups.forEach(grp=>{
+    if(!grp.slots.length) return;
+    rows+=`<tr class="section-row"><td colspan="${weekDates.length+1}"><span>${grp.label}</span></td></tr>`;
+
+    // Special PTO row — read-only, shows 5 PTO staff per day
+    if(grp.slots[0]&&grp.slots[0]._ptoRow){
+      for(let ptoIdx=0;ptoIdx<5;ptoIdx++){
+        rows+=`<tr style="background:rgba(248,81,73,0.03)"><td><div class="room-cell"><span class="room-cell-name" style="color:var(--danger)">Out / PTO ${ptoIdx+1}</span></div></td>`;
+        weekDates.forEach(dateISO=>{
+          const ptoEntry=DRAFT.find(s=>s._pto&&s.shift_date===dateISO&&s._ptoIdx===ptoIdx);
+          const name=ptoEntry?.assigned_tech;
+          if(name){
+            rows+=`<td style="text-align:center"><span style="background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--danger);white-space:nowrap">${name}</span></td>`;
+          } else {
+            rows+=`<td style="text-align:center;color:var(--text3);font-size:11px">—</td>`;
+          }
+        });
+        rows+='</tr>';
+      }
+      return;
+    }
+
+    grp.slots.forEach(tmpl=>{
+      rows+=`<tr><td><div class="room-cell"><span class="room-cell-name">${tmpl.room}</span><span class="room-cell-shift">${tmpl.shift||''}</span></div></td>`;
+      weekDates.forEach(dateISO=>{
+        const slot=DRAFT.find(s=>s.shift_date===dateISO&&s.room===tmpl.room&&s.shift_time===tmpl.shift&&s.department===tmpl.dept&&!s._pto);
+        if(!slot){rows+=`<td style="color:var(--text3);font-size:11px;text-align:center">—</td>`;return;}
+        const idx=DRAFT.indexOf(slot);
+        const isBad=!slot.assigned_tech&&!slot._support&&!slot._pto;
+        rows+=`<td><select class="grid-sel${isBad?' unfilled':''}" onchange="updateSlot(${idx},this.value)">${buildOpts(slot,dateISO)}</select></td>`;
+      });
+      rows+='</tr>';
+    });
+  });
+
+  document.getElementById('gen-days').innerHTML=`
+    <div class="gen-grid-wrap">
+      <table class="sched-grid">
+        <thead><tr>${hdrs}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function updateSlot(idx,val){
+  DRAFT[idx].assigned_tech=val||null;
+  DRAFT[idx]._unfilled=!val;
+
+  // ---- Double-booking detection ----
+  // Clear all existing orange highlights first
+  document.querySelectorAll('.grid-sel.double-booked').forEach(el=>el.classList.remove('double-booked'));
+
+  if(val){
+    const thisDate=DRAFT[idx].shift_date;
+    // Find all slots on the same day assigned to the same tech
+    const dupes=DRAFT.map((s,i)=>({s,i})).filter(({s,i})=>
+      s.assigned_tech===val && s.shift_date===thisDate && !s._pto
+    );
+    if(dupes.length>1){
+      // Highlight all selects for this tech on this day
+      const allSelects=document.querySelectorAll('.grid-sel');
+      const draftSelects=[...document.querySelectorAll('.grid-sel')];
+      // Map selects to draft indices by counting non-PTO, non-section selects
+      let selIdx=0;
+      const selectMap={};
+      DRAFT.forEach((s,i)=>{if(!s._pto) selectMap[i]=selIdx++;});
+      dupes.forEach(({s,i})=>{
+        const si=selectMap[i];
+        if(si!==undefined && draftSelects[si]) draftSelects[si].classList.add('double-booked');
+      });
+      // Show warning toast
+      showDupeWarning(val, thisDate);
+    }
+  }
+
+  // Refresh day header badges
+  const weekDates=[...new Set(DRAFT.filter(s=>!s._pto).map(s=>s.shift_date))];
+  const DAY_ABBR=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  document.querySelectorAll('.sched-grid th.day-th').forEach((th,i)=>{
+    const d=weekDates[i];if(!d)return;
+    const dt=new Date(d+'T12:00:00');
+    const uf=DRAFT.filter(s=>s.shift_date===d&&!s.assigned_tech&&!s._manual&&!s._support&&!s._pto).length;
+    const badge=uf?`<div style="font-size:9px;color:var(--danger);font-weight:600;margin-top:3px">⚠ ${uf} unfilled</div>`:`<div style="font-size:9px;color:var(--success);margin-top:3px">✓ Staffed</div>`;
+    th.innerHTML=`${DAY_ABBR[dt.getDay()]} ${dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})}${badge}`;
+  });
+}
+
+function showDupeWarning(name, dateISO){
+  let el=document.getElementById('dupe-warning');
+  if(!el){
+    el=document.createElement('div');
+    el.id='dupe-warning';
+    el.className='dupe-warning';
+    document.body.appendChild(el);
+  }
+  const dt=new Date(dateISO+'T12:00:00');
+  el.innerHTML=`⚠ <strong>${name}</strong> is already scheduled on ${dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}. Both slots are highlighted orange.`;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove('show'),5000);
+}
+
+function clearDraft(){if(!confirm('Discard this draft?'))return;DRAFT=[];document.getElementById('gen-draft-area').style.display='none';}
+
+async function publishDraft(){
+  const unfilled=DRAFT.filter(s=>!s.assigned_tech&&!s._manual);
+  if(unfilled.length&&!confirm(`${unfilled.length} slot${unfilled.length>1?'s are':' is'} unfilled. Publish anyway?`)) return;
+  document.getElementById('pub-btn').textContent='Publishing...';
+  document.getElementById('pub-btn').disabled=true;
+  const toPublish=DRAFT.filter(s=>s.assigned_tech).map(s=>({shift_date:s.shift_date,department:s.department,room:s.room,shift_time:s.shift_time,assigned_tech:s.assigned_tech,notes:s.notes||null}));
+  const{error}=await sb.from('schedule').insert(toPublish);
+  if(error){toast('Publish failed: '+error.message,'err');document.getElementById('pub-btn').textContent='✓ Publish Live';document.getElementById('pub-btn').disabled=false;return;}
+  toast(`✓ ${toPublish.length} shifts are now live!`,'ok');
+  DRAFT=[];
+  document.getElementById('gen-draft-area').style.display='none';
+  document.getElementById('pub-btn').textContent='✓ Publish Live';
+  document.getElementById('pub-btn').disabled=false;
+  await loadAll();
+  goTo('schedule',document.querySelectorAll('.nav-btn')[1]);
+}
+
+// ============================================================
+// SCHEDULE EDIT
+// ============================================================
+function openShiftModal(id=null){
+  document.getElementById('shift-edit-id').value=id||'';
+  document.getElementById('s-tech').innerHTML=STAFF.map(s=>`<option>${s.name}</option>`).join('');
+  if(id){
+    const s=SCHEDULE.find(x=>x.id===id);
+    document.getElementById('shift-modal-ttl').textContent='Edit Shift';
+    document.getElementById('s-date').value=s.shift_date;document.getElementById('s-dept').value=s.department;
+    document.getElementById('s-room').value=s.room;document.getElementById('s-shift').value=s.shift_time;
+    document.getElementById('s-tech').value=s.assigned_tech;document.getElementById('s-notes').value=s.notes||'';
+  }else{
+    document.getElementById('shift-modal-ttl').textContent='Add Shift';
+    document.getElementById('s-date').value=wkDates()[0]||new Date().toISOString().split('T')[0];
+    document.getElementById('s-notes').value='';
+  }
+  document.getElementById('shift-modal').classList.add('open');
+}
+function editShift(id){openShiftModal(id);}
+async function deleteShift(id){
+  if(!confirm('Delete this shift?'))return;
+  const{error}=await sb.from('schedule').delete().eq('id',id);
+  if(error){toast('Delete failed','err');return;}
+  toast('Deleted ✓');await loadAll();
+}
+async function saveShift(){
+  const id=document.getElementById('shift-edit-id').value;
+  const data={shift_date:document.getElementById('s-date').value,department:document.getElementById('s-dept').value,room:document.getElementById('s-room').value,shift_time:document.getElementById('s-shift').value,assigned_tech:document.getElementById('s-tech').value,notes:document.getElementById('s-notes').value||null,updated_at:new Date().toISOString()};
+  const op=id?sb.from('schedule').update(data).eq('id',id):sb.from('schedule').insert(data);
+  const{error}=await op;
+  if(error){toast('Save failed','err');return;}
+  closeModal('shift-modal');toast(id?'Updated ✓':'Added ✓');await loadAll();
+}
+
+// ============================================================
+// PTO
+// ============================================================
+function renderPTO(){
+  const sF=document.getElementById('f-pto-staff').value;
+  const srch=document.getElementById('f-pto-srch').value.toLowerCase().trim();
+  let html='';
+  Object.entries(MONTHS).forEach(([month,info])=>{
+    const start=dowStart(2026,info.n);
+    const dayMap={};
+    PTO.filter(p=>{
+      const d=new Date(p.pto_date+'T12:00:00');
+      if(d.getFullYear()!==2026||d.getMonth()+1!==info.n)return false;
+      if(sF&&p.staff_name!==sF)return false;
+      if(srch&&!p.staff_name.toLowerCase().includes(srch)&&!p.staff_initials.toLowerCase().includes(srch))return false;
+      return true;
+    }).forEach(p=>{
+      const day=new Date(p.pto_date+'T12:00:00').getDate();
+      if(!dayMap[day])dayMap[day]=[];
+      dayMap[day].push({init:p.staff_initials,name:p.staff_name,date:p.pto_date});
+    });
+    html+=`<div class="mc"><div class="mch">${month.toUpperCase()} 2026<span style="font-size:10px;color:var(--text2)">${[...new Set(Object.values(dayMap).flat().map(x=>x.init))].length} staff</span></div><div class="cg">`;
+    html+=['SUN','MON','TUE','WED','THU','FRI','SAT'].map(d=>`<div class="cdh">${d}</div>`).join('');
+    for(let i=0;i<start;i++)html+=`<div class="cd empty"></div>`;
+    for(let d=1;d<=info.d;d++){
+      const dw=(start+d-1)%7,we=dw===0||dw===6;
+      const hits=dayMap[d]||[];
+      const iso=`2026-${String(info.n).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      html+=`<div class="cd ${we?'we':''} ${hits.length?'hp':''}" ${!we?`onclick="openPTOModal('${iso}')"`:''}><span class="dn">${d}</span>${hits.length?`<div class="pt">${hits.map(h=>`<span class="ptag" onclick="event.stopPropagation();quickRemovePTO('${h.date}','${h.init}')">${h.init}</span>`).join('')}</div>`:''}${!we?`<div class="add-hint">+ add</div>`:''}</div>`;
+    }
+    const tot=start+info.d;for(let i=tot%7;i>0&&i<7;i++)html+=`<div class="cd empty"></div>`;
+    html+=`</div></div>`;
+  });
+  document.getElementById('pto-grid').innerHTML=html;
+}
+function openPTOModal(iso){
+  document.getElementById('pto-date-val').value=iso;
+  const d=new Date(iso+'T12:00:00');
+  document.getElementById('pto-modal-ttl').textContent=`PTO — ${d.toLocaleDateString('en-US',{month:'long',day:'numeric'})}`;
+  document.getElementById('pto-staff-sel').innerHTML=STAFF.map(s=>`<option value="${s.initials}|${s.name}">${s.name}</option>`).join('');
+  document.getElementById('pto-modal').classList.add('open');
+}
+async function quickRemovePTO(iso,init){
+  if(!confirm(`Remove PTO for ${init} on ${iso}?`))return;
+  const{error}=await sb.from('pto').delete().eq('pto_date',iso).eq('staff_initials',init);
+  if(error){toast('Failed','err');return;}
+  toast('Removed ✓');await loadAll();
+}
+async function savePTO(){
+  const iso=document.getElementById('pto-date-val').value;
+  const[init,name]=document.getElementById('pto-staff-sel').value.split('|');
+  const action=document.getElementById('pto-action').value;
+  let error;
+  if(action==='add'){const r=await sb.from('pto').insert({staff_initials:init,staff_name:name,pto_date:iso});error=r.error;}
+  else{const r=await sb.from('pto').delete().eq('pto_date',iso).eq('staff_initials',init);error=r.error;}
+  if(error&&!error.message?.includes('duplicate')){toast('Save failed','err');return;}
+  closeModal('pto-modal');toast(`PTO ${action==='add'?'added':'removed'} ✓`);await loadAll();
+}
+
+// ============================================================
+// STAFF
+// ============================================================
+function renderStaff(){
+  const qF=document.getElementById('f-qual').value;
+  const sF=document.getElementById('f-staff').value.toLowerCase().trim();
+  let list=STAFF;
+  if(qF)list=list.filter(s=>s.qualifications?.includes(qF));
+  if(sF)list=list.filter(s=>s.name.toLowerCase().includes(sF));
+  document.getElementById('staff-sub').textContent=`${list.length} staff member${list.length!==1?'s':''}`;
+  document.getElementById('staff-grid').innerHTML=list.map(s=>`<div class="sc2"><div class="sca"><button class="btn-icon" onclick="editStaff('${s.id}')">✏</button><button class="btn-icon" style="background:rgba(248,81,73,0.1);color:var(--danger);border-color:rgba(248,81,73,0.3)" onclick="deleteStaff('${s.id}','${s.name.replace(/'/g,"\\'")}')">✕</button></div><div class="avl" style="background:${tc(s.name)}">${s.initials}</div><div style="flex:1;min-width:0"><div class="sn">${s.name}</div><div class="sm">📅 ${s.available_days}</div><div class="sq">${(s.qualifications||[]).map(q=>`<span class="dept-pill dp-${q}">${q}</span>`).join('')}</div>${s.pto_dates?`<div class="sp"><div class="spl">PTO 2026</div><div>${s.pto_dates}</div></div>`:''}</div></div>`).join('');
+}
+function openStaffModal(id=null){
+  document.getElementById('staff-edit-id').value=id||'';
+  if(id){
+    const s=STAFF.find(x=>x.id===id);
+    document.getElementById('staff-modal-ttl').textContent='Edit Staff';
+    document.getElementById('st-name').value=s.name;document.getElementById('st-init').value=s.initials;
+    document.getElementById('st-days').value=s.available_days||'';document.getElementById('st-quals').value=(s.qualifications||[]).join(', ');
+    document.getElementById('st-pto').value=s.pto_dates||'';
+  }else{
+    document.getElementById('staff-modal-ttl').textContent='Add Staff Member';
+    ['st-name','st-init','st-days','st-quals','st-pto'].forEach(i=>document.getElementById(i).value='');
+  }
+  document.getElementById('staff-modal').classList.add('open');
+}
+function editStaff(id){openStaffModal(id);}
+async function deleteStaff(id,name){
+  if(!confirm(`Remove ${name}?`))return;
+  const{error}=await sb.from('staff').delete().eq('id',id);
+  if(error){toast('Failed','err');return;}
+  toast('Removed ✓');await loadAll();
+}
+async function saveStaff(){
+  const id=document.getElementById('staff-edit-id').value;
+  const quals=document.getElementById('st-quals').value.split(',').map(q=>q.trim()).filter(Boolean);
+  const data={name:document.getElementById('st-name').value.trim(),initials:document.getElementById('st-init').value.trim().toUpperCase(),available_days:document.getElementById('st-days').value.trim(),qualifications:quals,pto_dates:document.getElementById('st-pto').value.trim()||null};
+  if(!data.name){toast('Name required','err');return;}
+  const op=id?sb.from('staff').update(data).eq('id',id):sb.from('staff').insert(data);
+  const{error}=await op;
+  if(error){toast('Save failed','err');return;}
+  closeModal('staff-modal');toast(id?'Updated ✓':'Added ✓');await loadAll();
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+// ============================================================
+// CALENDAR PICKER
+// ============================================================
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+let calSelected=null;
+
+function toggleCal(){
+  const dd=document.getElementById('cal-dropdown');
+  const tr=document.getElementById('cal-trigger');
+  const isOpen=dd.classList.contains('open');
+  if(isOpen){dd.classList.remove('open');tr.classList.remove('open');}
+  else{dd.classList.add('open');tr.classList.add('open');renderCal();}
+}
+
+function calNav(dir){
+  calMonth+=dir;
+  if(calMonth>11){calMonth=0;calYear++;}
+  if(calMonth<0){calMonth=11;calYear--;}
+  renderCal();
+}
+
+function renderCal(){
+  const MNAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent=`${MNAMES[calMonth]} ${calYear}`;
+
+  const scheduledMondays=new Set();
+  SCHEDULE.forEach(s=>{const d=new Date(s.shift_date+'T12:00:00');if(d.getDay()===1)scheduledMondays.add(s.shift_date);});
+
+  const firstDay=new Date(calYear,calMonth,1);
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const startOffset=firstDay.getDay(); // Sun=0 (JS default)
+  const today=new Date().toISOString().split('T')[0];
+
+  // Day headers — Mon highlighted
+  // Sun-start headers, Monday highlighted
+  const dayHeaders=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  let html=dayHeaders.map((h,i)=>`<div class="cal-dh${i===1?' hl':''}">${h}</div>`).join('');
+
+  // Sun-start offset: Sun=0,Mon=1...Sat=6 (JS getDay() is already Sun=0)
+  for(let i=0;i<firstDay.getDay();i++) html+=`<div class="cal-day"></div>`;
+
+  // Day cells
+  for(let d=1;d<=daysInMonth;d++){
+    const dow=new Date(calYear,calMonth,d).getDay();
+    const iso=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isMon=dow===1;
+    let cls='cal-day';
+    if(isMon) cls+=' monday';
+    if(calSelected===iso) cls+=' selected';
+    if(scheduledMondays.has(iso)) cls+=' has-sched';
+    if(iso===today) cls+=' is-today';
+    const click=isMon?`onclick="selectMonday('${iso}')"`:'';
+    const tip=isMon?(scheduledMondays.has(iso)?'Already scheduled — can still add more':'Click to select this week'):'';
+    html+=`<div class="${cls}" ${click} title="${tip}">${d}</div>`;
+  }
+
+  // Trailing blank cells to complete last row
+  const total=startOffset+daysInMonth;
+  const trail=(7-total%7)%7;
+  for(let i=0;i<trail;i++) html+=`<div class="cal-day"></div>`;
+
+  document.getElementById('cal-full-grid').innerHTML=html;
+}
+
+function selectMonday(iso){
+  calSelected=iso;
+  document.getElementById('gen-week-start').value=iso;
+  const d=new Date(iso+'T12:00:00');
+  const wEnd=new Date(d);wEnd.setDate(wEnd.getDate()+4);
+  document.getElementById('cal-trigger-text').textContent=
+    `${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${wEnd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+  document.getElementById('cal-dropdown').classList.remove('open');
+  document.getElementById('cal-trigger').classList.remove('open');
+  renderCal();
+}
+
+// Close calendar when clicking outside
+document.addEventListener('click',e=>{
+  const wrap=document.getElementById('cal-wrap');
+  if(wrap&&!wrap.contains(e.target)){
+    document.getElementById('cal-dropdown')?.classList.remove('open');
+    document.getElementById('cal-trigger')?.classList.remove('open');
+  }
+});
+
+checkSession();
+</script>
+</body>
+</html>
