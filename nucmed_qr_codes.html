@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>NucMed QR Codes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #0a0e14;
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 48px;
+    flex-wrap: wrap;
+  }
+  .card {
+    background: #131920;
+    border: 1px solid #263040;
+    border-radius: 24px;
+    padding: 32px;
+    text-align: center;
+    width: 320px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+  .label {
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 20px;
+  }
+  .qr-wrap {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    display: inline-block;
+  }
+  .url {
+    font-size: 10px;
+    color: #7a90a8;
+    margin-top: 16px;
+    font-family: monospace;
+    word-break: break-all;
+    line-height: 1.6;
+  }
+  @media print {
+    body { background: white; }
+    .card { background: white; border: 1px solid #ccc; }
+    .label, .url { color: #000 !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="badge" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.3)">📅 Staff Viewer</div>
+  <div class="label" style="color:#00d4aa">Public Schedule</div>
+  <div class="qr-wrap"><div id="qr1"></div></div>
+  <div class="url">tvmmvt.github.io/Nuc-Med-Schedule/index.html</div>
+</div>
+
+<div class="card">
+  <div class="badge" style="background:rgba(248,81,73,0.12);color:#f85149;border:1px solid rgba(248,81,73,0.3)">🔐 Admin Only</div>
+  <div class="label" style="color:#f85149">Admin Panel</div>
+  <div class="qr-wrap"><div id="qr2"></div></div>
+  <div class="url">tvmmvt.github.io/Nuc-Med-Schedule/nucmed_admin.html</div>
+</div>
+
+<script>
+new QRCode(document.getElementById("qr1"), {
+  text: "https://tvmmvt.github.io/Nuc-Med-Schedule/index.html",
+  width: 240, height: 240,
+  colorDark: "#000000", colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.M
+});
+new QRCode(document.getElementById("qr2"), {
+  text: "https://tvmmvt.github.io/Nuc-Med-Schedule/nucmed_admin.html",
+  width: 240, height: 240,
+  colorDark: "#000000", colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.M
+});
+</script>
+</body>
+</html>
